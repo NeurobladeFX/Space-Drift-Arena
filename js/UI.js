@@ -551,20 +551,68 @@ export class UI {
     copyRoomCode() {
         if (!this.currentRoomCode) return;
 
-        navigator.clipboard.writeText(this.currentRoomCode).then(() => {
-            const statusEl = document.getElementById('copyStatus');
-            statusEl.textContent = 'Copied to clipboard!';
-            statusEl.style.color = '#00FF88';
+        // Try to use the Clipboard API first
+        if (navigator.clipboard && window.isSecureContext) {
+            navigator.clipboard.writeText(this.currentRoomCode).then(() => {
+                const statusEl = document.getElementById('copyStatus');
+                statusEl.textContent = 'Copied to clipboard!';
+                statusEl.style.color = '#00FF88';
 
+                setTimeout(() => {
+                    statusEl.textContent = '';
+                }, 3000);
+            }).catch(err => {
+                console.error('Failed to copy using Clipboard API: ', err);
+                // Fallback to manual copy method
+                this.fallbackCopyTextToClipboard(this.currentRoomCode);
+            });
+        } else {
+            // Fallback for non-secure contexts or older browsers
+            this.fallbackCopyTextToClipboard(this.currentRoomCode);
+        }
+    }
+
+    // Fallback method for copying text when Clipboard API is not available
+    fallbackCopyTextToClipboard(text) {
+        const textArea = document.createElement("textarea");
+        textArea.value = text;
+        
+        // Avoid scrolling to bottom
+        textArea.style.top = "0";
+        textArea.style.left = "0";
+        textArea.style.position = "fixed";
+        textArea.style.opacity = "0";
+        
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        
+        try {
+            const successful = document.execCommand('copy');
+            const statusEl = document.getElementById('copyStatus');
+            if (successful) {
+                statusEl.textContent = 'Copied to clipboard!';
+                statusEl.style.color = '#00FF88';
+            } else {
+                statusEl.textContent = 'Press Ctrl+C to copy';
+                statusEl.style.color = '#FFFF00';
+            }
+            
             setTimeout(() => {
                 statusEl.textContent = '';
             }, 3000);
-        }).catch(err => {
-            console.error('Failed to copy: ', err);
+        } catch (err) {
+            console.error('Fallback copy failed: ', err);
             const statusEl = document.getElementById('copyStatus');
-            statusEl.textContent = 'Failed to copy code';
-            statusEl.style.color = '#FF0055';
-        });
+            statusEl.textContent = 'Press Ctrl+C to copy';
+            statusEl.style.color = '#FFFF00';
+            
+            setTimeout(() => {
+                statusEl.textContent = '';
+            }, 3000);
+        }
+        
+        document.body.removeChild(textArea);
     }
 
     getMatchDuration() {

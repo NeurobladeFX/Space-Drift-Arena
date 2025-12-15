@@ -23,10 +23,21 @@ export class Multiplayer {
         this.maxPlayers = 6;
     }
 
-    // Initialize PeerJS
+    // Initialize PeerJS with explicit configuration for better compatibility
     init() {
         return new Promise((resolve, reject) => {
-            this.peer = new Peer();
+            // Use the default PeerJS cloud server with explicit configuration
+            // This ensures consistent behavior across different environments
+            this.peer = new Peer({
+                config: {
+                    iceServers: [
+                        { urls: 'stun:stun.l.google.com:19302' },
+                        { urls: 'stun:stun1.l.google.com:19302' },
+                        { urls: 'stun:stun2.l.google.com:19302' }
+                    ]
+                },
+                debug: 2 // Enable debug logging for troubleshooting
+            });
 
             this.peer.on('open', (id) => {
                 this.peerId = id;
@@ -36,6 +47,11 @@ export class Multiplayer {
 
             this.peer.on('error', (err) => {
                 console.error('Peer error:', err);
+                // Provide more detailed error information
+                console.error('Peer error details:', {
+                    type: err.type,
+                    message: err.message
+                });
                 reject(err);
             });
         });

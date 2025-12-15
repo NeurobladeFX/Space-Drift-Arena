@@ -1,7 +1,7 @@
 export class Multiplayer {
     constructor(game) {
         this.game = game;
-        this.useServer = false; // switched on by main when matchmaker available
+        this.useServer = true; // Only server relay
         this.matchmaker = null;
         this.localId = `p_${Date.now().toString(36)}_${Math.random().toString(36).slice(2,6)}`;
         this.peer = null;
@@ -28,178 +28,45 @@ export class Multiplayer {
 
     // Initialize PeerJS with explicit configuration for better compatibility
     init() {
-        if (this.useServer) {
-            return Promise.resolve(this.localId);
-        }
-        return new Promise((resolve, reject) => {
-            // Use the default PeerJS cloud server with explicit configuration
-            this.peer = new Peer({
-                config: {
-                    iceServers: [
-                        { urls: 'stun:stun.l.google.com:19302' },
-                        { urls: 'stun:stun1.l.google.com:19302' },
-                        { urls: 'stun:stun2.l.google.com:19302' }
-                    ]
-                },
-                debug: 2
-            });
-
-            this.peer.on('open', (id) => {
-                this.peerId = id;
-                console.log('Peer ID:', id);
-                resolve(id);
-            });
-
-            this.peer.on('error', (err) => {
-                console.error('Peer error:', err);
-                reject(err);
-            });
-        });
+        // No P2P used; just return localId
+        return Promise.resolve(this.localId);
     }
 
     // Host a new game
     async hostGame() {
-        if (this.useServer) {
-            if (!this.matchmaker || !this.matchmaker.ws) throw new Error('Matchmaker not connected');
-            this.isHost = true;
-            const roomId = `room_${Date.now().toString(36)}`;
-            this.roomCode = roomId;
-            this.players = [{ id: this.localId, name: this.localPlayerName || 'Host', isHost: true }];
-            // Inform server to create room
-            this.matchmaker.send({ type: 'HOST_ROOM', roomId: roomId, peerId: this.localId, meta: { name: this.localPlayerName, avatar: this.localAvatar || null } });
-            console.log('[Multiplayer] Hosting room via server:', roomId);
-            return roomId;
-        }
-
-        if (!this.peer) {
-            await this.init();
-        }
-                // If we were awaiting join, resolve now
-                if (this._joinResolve) {
-                    this._joinResolve(true);
-                    this._joinResolve = null;
-                }
-
+        if (!this.matchmaker || !this.matchmaker.ws) throw new Error('Matchmaker not connected');
         this.isHost = true;
-        this.roomCode = this.generateRoomCode();
-        this.players = [{ id: this.peerId, name: this.localPlayerName || 'Host', isHost: true }];
-
-        // Listen for incoming connections
-        this.peer.on('connection', (conn) => {
-            this.handleIncomingConnection(conn);
-        });
-
-        console.log('[Multiplayer] Hosting game with room code:', this.roomCode);
-        return this.roomCode;
+        const roomId = `room_${Date.now().toString(36)}`;
+        this.roomCode = roomId;
+        this.players = [{ id: this.localId, name: this.localPlayerName || 'Host', isHost: true }];
+        // Inform server to create room
+        this.matchmaker.send({ type: 'HOST_ROOM', roomId: roomId, peerId: this.localId, meta: { name: this.localPlayerName, avatar: this.localAvatar || null } });
+        console.log('[Multiplayer] Hosting room via server:', roomId);
+        return roomId;
     }
 
     // Join existing game
     async joinGame(roomCode) {
-        if (!this.peer) {
-            await this.init();
-        }
-
+        await this.init();
         this.isHost = false;
-
-        // Clean up the room code (remove spaces, convert to uppercase)
-        roomCode = roomCode.trim().toUpperCase();
-
-        if (!roomCode) {
-            throw new Error('Please enter a room code');
-        }
-
-        // Validate room code format (6 characters, alphanumeric)
-        if (!/^[A-Z0-9]{6}$/.test(roomCode)) {
-            throw new Error('Invalid room code format. Room code should be 6 alphanumeric characters.');
-        }
-
-        console.log(`[Multiplayer] Trying to join room ${roomCode}`);
-
-        // In a proper implementation, we would contact the matchmaking server
-        // to resolve the room code to a peer ID. For now, we'll assume the 
-        // room code IS the host's peer ID for simplicity.
-        // 
-        // IMPORTANT: For this to work, the host must:
-        // 1. Have created a game room
-        // 2. Be currently online and connected to PeerJS
-        // 3. Have the same PeerJS server configuration
-        
-        const hostPeerId = roomCode;
-
-        try {
-            console.log(`[Multiplayer] Attempting to connect to peer ${hostPeerId} for room ${roomCode}`);
-            
-            // Connect to host using peer ID
-            const conn = this.peer.connect(hostPeerId, {
-                reliable: true
-            });
-
-            return new Promise((resolve, reject) => {
-                let connectionTimeout;
-
-                conn.on('open', () => {
-                    clearTimeout(connectionTimeout);
-                    console.log('[Multiplayer] Successfully connected to host!');
-                    this.handleHostConnection(conn);
-                    resolve(true);
-                });
-
-                conn.on('error', (err) => {
-                    clearTimeout(connectionTimeout);
-                    console.error('[Multiplayer] Connection error:', err);
-                    console.error('[Multiplayer] Full error details:', {
-                        type: err.type,
-                        message: err.message
-                    });
-                    
-                    // Provide specific error messages based on error type
-                    let errorMsg = 'Failed to connect to room.';
-                    if (err.type === 'peer-unavailable') {
-                        errorMsg = `Room "${roomCode}" not found. Please check that:\n1. The room code is correct\n2. The host is still online\n3. Both players are using the same server`;
-                    } else if (err.type === 'network') {
-                        errorMsg = 'Network error. Please check your internet connection.';
-                    } else {
-                        errorMsg = `Connection failed: ${err.message}`;
-                    }
-                    
-                    reject(new Error(errorMsg));
-                });
-
-                // Timeout after 15 seconds with a clearer message
-                connectionTimeout = setTimeout(() => {
-                    // Server-mediated join
-                    if (this.useServer) {
-                        if (!this.matchmaker || !this.matchmaker.ws) return reject(new Error('Matchmaker not connected'));
-                        this.isHost = false;
-                        this.roomCode = roomCode;
-                        // send join request to server
-                        this.matchmaker.send({ type: 'JOIN_ROOM', roomId: roomCode, peerId: this.localId, meta: { name: this.localPlayerName, avatar: this.localAvatar || null } });
-                        // wait for PLAYER_LIST via handleData
-                        this._joinResolve = (ok) => {
-                            this._joinResolve = null;
-                            if (ok) resolve(true); else reject(new Error('Join failed'));
-                        };
-                        // timeout safeguard
-                        setTimeout(() => {
-                            if (this._joinResolve) {
-                                this._joinResolve = null;
-                                reject(new Error('Join timeout'));
-                            }
-                        }, 10000);
-                        return;
-                    }
-
-                    // Fallback: original PeerJS join path is not safe here; just timeout the attempt
-                    if (!conn.open) {
-                        conn.close();
-                        reject(new Error('Connection timeout. Host may be offline.'));
-                    }
-                }, 15000);
-            });
-        } catch (err) {
-            console.error('Join error:', err);
-            throw new Error('Failed to join room. Please check the code.');
-        }
+        roomCode = (roomCode || '').trim();
+        if (!roomCode) throw new Error('Please enter a room code');
+        console.log(`[Multiplayer] Joining via server relay room ${roomCode}`);
+        if (!this.matchmaker || !this.matchmaker.ws) throw new Error('Matchmaker not connected');
+        this.roomCode = roomCode;
+        this.matchmaker.send({ type: 'JOIN_ROOM', roomId: roomCode, peerId: this.localId, meta: { name: this.localPlayerName, avatar: this.localAvatar || null } });
+        return new Promise((resolve, reject) => {
+            this._joinResolve = (ok) => {
+                this._joinResolve = null;
+                if (ok) resolve(true); else reject(new Error('Join failed'));
+            };
+            setTimeout(() => {
+                if (this._joinResolve) {
+                    this._joinResolve = null;
+                    reject(new Error('Join timeout'));
+                }
+            }, 15000);
+        });
     }
 
     // Handle messages coming from the matchmaker/relay server (Render)

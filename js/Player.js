@@ -130,7 +130,7 @@ export class Player {
 
         // REMOTE PLAYER INTERPOLATION
         if (this.isRemote) {
-            const lerpSpeed = 15; // Increased from 8 to 15 for more responsive interpolation
+            const lerpSpeed = 20; // Increased from 15 to 20 for even more responsive interpolation
 
             // Position Lerp
             if (this.targetX !== undefined) {
@@ -148,10 +148,6 @@ export class Player {
                 while (diff < -Math.PI) diff += 2 * Math.PI;
 
                 this.angle += diff * lerpSpeed * deltaTime;
-                // Log angle changes for debugging - reduced frequency
-                if (Math.abs(diff) > 0.01) {
-                    console.log(`[Player] Interpolating angle for ${this.id}: ${this.angle.toFixed(3)} (target: ${this.targetAngle.toFixed(3)})`);
-                }
             }
             
             // Gradually reduce velocity for smoother stopping
@@ -363,9 +359,6 @@ export class Player {
     }
 
     render(ctx, camera) {
-        // Log for debugging
-        console.log(`[Player.render] Rendering player ${this.id}, alive=${this.alive}, isRemote=${this.isRemote}`);
-        
         // Convert world coordinates to screen coordinates
         const screenX = this.x - camera.x;
         const screenY = this.y - camera.y;
@@ -373,14 +366,6 @@ export class Player {
         ctx.save();
         ctx.translate(screenX, screenY);
         
-        // Debug: Draw a small dot at the player's position for remote players
-        if (this.isRemote) {
-            ctx.fillStyle = '#FF0000';
-            ctx.beginPath();
-            ctx.arc(0, 0, 2, 0, Math.PI * 2);
-            ctx.fill();
-        }
-
         // Premium character aura effect
         if (this.aura && !this.isBot) {
             const time = Date.now() / 1000;

@@ -64,19 +64,19 @@ export class Matchmaker {
         let msg;
         try { msg = JSON.parse(ev.data); } catch (e) { return; }
         // Reduce logging frequency - only log important messages
-        if (msg.type !== 'GAME_STATE' && msg.type !== 'MATCH_TIMER') {
+        if (msg.type !== 'GAME_STATE' && msg.type !== 'MATCH_TIMER' && msg.type !== 'PLAYER_LIST' && msg.type !== 'PLAYER_JOINED' && msg.type !== 'PLAYER_LEFT') {
             console.log('[Matchmaker] Received message from server:', msg);
         }
         // If this is a room/relay message, forward to multiplayer handler
         const roomTypes = ['PLAYER_LIST','PLAYER_JOINED','PLAYER_LEFT','GAME_STATE','PROJECTILES','HOST_ROOM_ACK','ERROR','START_GAME','DAMAGE','PLAYER_DEATH','SPAWN_PICKUP','MATCH_TIMER'];
         if (msg && msg.type && roomTypes.includes(msg.type)) {
             // Reduce logging frequency - only log important message types
-            if (msg.type !== 'GAME_STATE' && msg.type !== 'MATCH_TIMER') {
+            if (msg.type !== 'GAME_STATE' && msg.type !== 'MATCH_TIMER' && msg.type !== 'PLAYER_LIST' && msg.type !== 'PLAYER_JOINED' && msg.type !== 'PLAYER_LEFT') {
                 console.log('[Matchmaker] Forwarding room message to multiplayer handler:', msg.type);
             }
             if (this.multiplayer && this.multiplayer.handleData) {
                 // Reduce logging frequency - only log important message types
-                if (msg.type !== 'GAME_STATE' && msg.type !== 'MATCH_TIMER') {
+                if (msg.type !== 'GAME_STATE' && msg.type !== 'MATCH_TIMER' && msg.type !== 'PLAYER_LIST' && msg.type !== 'PLAYER_JOINED' && msg.type !== 'PLAYER_LEFT') {
                     console.log('[Matchmaker] Calling multiplayer.handleData with message:', msg.type);
                 }
                 this.multiplayer.handleData(msg);
@@ -138,7 +138,7 @@ export class Matchmaker {
 
     send(obj) {
         // Reduce logging frequency - only log important message types
-        if (obj.type !== 'GAME_STATE') {
+        if (obj.type !== 'GAME_STATE' && obj.type !== 'MATCH_TIMER' && obj.type !== 'PLAYER_LIST' && obj.type !== 'PLAYER_JOINED' && obj.type !== 'PLAYER_LEFT') {
             console.log('[Matchmaker] Sending message:', obj.type);
         }
         if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
@@ -150,7 +150,7 @@ export class Matchmaker {
         try {
             this.ws.send(JSON.stringify(obj));
             // Reduce logging frequency - only log important message types
-            if (obj.type !== 'GAME_STATE') {
+            if (obj.type !== 'GAME_STATE' && obj.type !== 'MATCH_TIMER' && obj.type !== 'PLAYER_LIST' && obj.type !== 'PLAYER_JOINED' && obj.type !== 'PLAYER_LEFT') {
                 console.log('[Matchmaker] Message sent successfully');
             }
         } catch (e) {

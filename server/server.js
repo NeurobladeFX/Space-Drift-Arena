@@ -308,15 +308,24 @@ function send(ws, obj) {
 }
 
 wss.on('connection', (ws) => {
+  console.log('[SERVER] New WebSocket connection established');
   ws.isAlive = true;
   ws.on('pong', () => ws.isAlive = true);
 
   ws.on('message', (msg) => {
+    console.log('[SERVER] Raw message received:', msg.toString());
     let data;
-    try { data = JSON.parse(msg); } catch (e) { return; }
+    try { 
+      data = JSON.parse(msg); 
+      console.log('[SERVER] Parsed message:', data);
+    } catch (e) { 
+      console.error('[SERVER] Failed to parse message:', e);
+      return; 
+    }
 
     // Use an async IIFE so we can await Redis checks
     (async () => {
+      console.log('[SERVER] Processing message type:', data.type);
       switch (data.type) {
           // Room lifecycle and in-game relay messages
           case 'HOST_ROOM': {
@@ -513,6 +522,7 @@ wss.on('connection', (ws) => {
   });
 
   ws.on('close', () => {
+    console.log('[SERVER] WebSocket connection closed');
     // clean queue
     for (let i = 0; i < queue.length; i++) if (queue[i].ws === ws) queue.splice(i, 1);
     // remove from pending
@@ -526,6 +536,10 @@ wss.on('connection', (ws) => {
         break;
       }
     }
+  });
+  
+  ws.on('error', (error) => {
+    console.error('[SERVER] WebSocket error:', error);
   });
 });
 

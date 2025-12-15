@@ -34,14 +34,20 @@ export class Multiplayer {
 
     // Host a new game
     async hostGame() {
-        if (!this.matchmaker || !this.matchmaker.ws) throw new Error('Matchmaker not connected');
+        console.log('[Multiplayer] hostGame called');
+        if (!this.matchmaker || !this.matchmaker.ws) {
+            console.log('[Multiplayer] Matchmaker not connected');
+            throw new Error('Matchmaker not connected');
+        }
         this.isHost = true;
         const roomId = `room_${Date.now().toString(36)}`;
+        console.log('[Multiplayer] Generated room ID:', roomId);
         this.roomCode = roomId;
         this.players = [{ id: this.localId, name: this.localPlayerName || 'Host', isHost: true }];
         
         // Create a promise to wait for HOST_ROOM_ACK
         return new Promise((resolve, reject) => {
+            console.log('[Multiplayer] Creating promise to wait for HOST_ROOM_ACK');
             // Set up temporary handler for HOST_ROOM_ACK
             const originalHandler = this.handleData;
             let ackReceived = false;
@@ -74,6 +80,7 @@ export class Multiplayer {
             };
             
             // Inform server to create room
+            console.log('[Multiplayer] Sending HOST_ROOM message to matchmaker');
             this.matchmaker.send({ type: 'HOST_ROOM', roomId: roomId, peerId: this.localId, meta: { name: this.localPlayerName, avatar: this.localAvatar || null } });
             console.log('[Multiplayer] Hosting room via server:', roomId);
             

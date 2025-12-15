@@ -121,12 +121,15 @@ export class Matchmaker {
     }
 
     send(obj) {
+        console.log('[Matchmaker] Sending message:', obj);
         if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+            console.log('[Matchmaker] WebSocket not open, attempting to connect');
             this.connect();
             setTimeout(() => this.send(obj), 200);
             return;
         }
         this.ws.send(JSON.stringify(obj));
+        console.log('[Matchmaker] Message sent successfully');
     }
 
     findMatch(meta = {}) {

@@ -35,10 +35,23 @@ export class Multiplayer {
     // Host a new game
     async hostGame() {
         console.log('[Multiplayer] hostGame called');
+        
+        // Wait for matchmaker connection if not connected
+        if (!this.matchmaker || !this.matchmaker.ws || this.matchmaker.ws.readyState !== WebSocket.OPEN) {
+            console.log('[Multiplayer] Matchmaker not connected, attempting to connect...');
+            try {
+                await this.waitForMatchmakerConnection();
+            } catch (error) {
+                console.log('[Multiplayer] Failed to connect to matchmaker:', error);
+                throw new Error('Failed to connect to matchmaker: ' + error.message);
+            }
+        }
+        
         if (!this.matchmaker || !this.matchmaker.ws) {
             console.log('[Multiplayer] Matchmaker not connected');
             throw new Error('Matchmaker not connected');
         }
+        
         this.isHost = true;
         const roomId = `room_${Date.now().toString(36)}`;
         console.log('[Multiplayer] Generated room ID:', roomId);
@@ -118,6 +131,18 @@ export class Multiplayer {
         roomCode = (roomCode || '').trim();
         if (!roomCode) throw new Error('Please enter a room code');
         console.log(`[Multiplayer] Joining via server relay room ${roomCode}`);
+        
+        // Wait for matchmaker connection if not connected
+        if (!this.matchmaker || !this.matchmaker.ws || this.matchmaker.ws.readyState !== WebSocket.OPEN) {
+            console.log('[Multiplayer] Matchmaker not connected, attempting to connect...');
+            try {
+                await this.waitForMatchmakerConnection();
+            } catch (error) {
+                console.log('[Multiplayer] Failed to connect to matchmaker:', error);
+                throw new Error('Failed to connect to matchmaker: ' + error.message);
+            }
+        }
+        
         if (!this.matchmaker || !this.matchmaker.ws) throw new Error('Matchmaker not connected');
         this.roomCode = roomCode;
 
@@ -494,5 +519,70 @@ export class Multiplayer {
         }
         if (!this.peer || !this.isHost) return;
         this.broadcast({ type: 'MATCH_TIMER', timeLeft: timeLeft });
+    }
+
+    // Helper method to wait for matchmaker connection
+    waitForMatchmakerConnection() {
+        return new Promise((resolve, reject) => {
+            if (!this.matchmaker) {
+                reject(new Error('Matchmaker not initialized'));
+                return;
+            }
+            
+            // If already connected, resolve immediately
+            if (this.matchmaker.ws && this.matchmaker.ws.readyState === WebSocket.OPEN) {
+                resolve();
+                return;
+            }
+            
+            // Try to connect if not already connecting
+            if (!this.matchmaker.ws || this.matchmaker.ws.readyState !== WebSocket.CONNECTING) {
+                this.matchmaker.connect();
+            }
+            
+            // Set up connection listeners
+            const onConnected = () => {
+                console.log('[Multiplayer] Matchmaker connected successfully');
+                cleanup();
+                resolve();
+            };
+            
+            const onDisconnected = () => {
+                console.log('[Multiplayer] Matchmaker disconnected during connection wait');
+                cleanup();
+                reject(new Error('Matchmaker disconnected'));
+            };
+            
+            const onError = (error) => {
+                console.log('[Multiplayer] Matchmaker connection error:', error);
+                cleanup();
+                reject(new Error('Matchmaker connection error: ' + error.message));
+            };
+            
+            // Clean up listeners
+            const cleanup = () => {
+                if (this.matchmaker) {
+                    this.matchmaker.onConnected = null;
+                    this.matchmaker.onDisconnected = null;
+                }
+            };
+            
+            // Set up temporary listeners
+            this.matchmaker.onConnected = onConnected;
+            this.matchmaker.onDisconnected = onDisconnected;
+            
+            // Set timeout
+            const timeout = setTimeout(() => {
+                cleanup();
+                reject(new Error('Matchmaker connection timeout'));
+            }, 5000); // 5 second timeout
+            
+            // Clean up timeout in cleanup function
+            const originalCleanup = cleanup;
+            cleanup = () => {
+                clearTimeout(timeout);
+                originalCleanup();
+            };
+        });
     }
 }

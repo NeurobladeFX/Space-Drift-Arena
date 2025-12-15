@@ -52,9 +52,11 @@ export class Matchmaker {
                 try { ws.close(); } catch (e) { 
                     console.error('[Matchmaker] Error closing socket:', e);
                 }
+                if (this.onError) this.onError(ev);
             };
         } catch (error) {
             console.error('[Matchmaker] Failed to create WebSocket connection to', this.serverUrl, ':', error);
+            if (this.onError) this.onError(error);
         }
     }
 

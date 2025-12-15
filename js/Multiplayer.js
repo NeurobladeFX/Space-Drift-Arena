@@ -54,18 +54,60 @@ export class Multiplayer {
         console.log(`[Multiplayer] Joining via server relay room ${roomCode}`);
         if (!this.matchmaker || !this.matchmaker.ws) throw new Error('Matchmaker not connected');
         this.roomCode = roomCode;
-        this.matchmaker.send({ type: 'JOIN_ROOM', roomId: roomCode, peerId: this.localId, meta: { name: this.localPlayerName, avatar: this.localAvatar || null } });
+
+        const sendJoin = () => {
+            try {
+                this.matchmaker.send({ type: 'JOIN_ROOM', roomId: roomCode, peerId: this.localId, meta: { name: this.localPlayerName, avatar: this.localAvatar || null } });
+            } catch (e) {
+                console.warn('[Multiplayer] Failed to send JOIN_ROOM, will retry if pending', e);
+            }
+        };
+
+        // initial attempt
+        sendJoin();
+
         return new Promise((resolve, reject) => {
             this._joinResolve = (ok) => {
                 this._joinResolve = null;
+                this._joinReject = null;
+                if (this._joinRetryTimer1) { clearTimeout(this._joinRetryTimer1); this._joinRetryTimer1 = null; }
+                if (this._joinRetryTimer2) { clearTimeout(this._joinRetryTimer2); this._joinRetryTimer2 = null; }
                 if (ok) resolve(true); else reject(new Error('Join failed'));
             };
-            setTimeout(() => {
+            this._joinReject = (err) => {
+                this._joinResolve = null;
+                this._joinReject = null;
+                if (this._joinRetryTimer1) { clearTimeout(this._joinRetryTimer1); this._joinRetryTimer1 = null; }
+                if (this._joinRetryTimer2) { clearTimeout(this._joinRetryTimer2); this._joinRetryTimer2 = null; }
+                reject(err instanceof Error ? err : new Error(String(err)));
+            };
+
+            // retry once after 2s if still pending
+            this._joinRetryTimer1 = setTimeout(() => {
                 if (this._joinResolve) {
+                    console.log('[Multiplayer] No PLAYER_LIST yet, retrying JOIN_ROOM...');
+                    sendJoin();
+                }
+            }, 2000);
+
+            // retry again after 5s if still pending
+            this._joinRetryTimer2 = setTimeout(() => {
+                if (this._joinResolve) {
+                    console.log('[Multiplayer] Still pending, retrying JOIN_ROOM again...');
+                    sendJoin();
+                }
+            }, 5000);
+
+            // overall timeout
+            setTimeout(() => {
+                if (this._joinResolve || this._joinReject) {
                     this._joinResolve = null;
+                    this._joinReject = null;
+                    if (this._joinRetryTimer1) { clearTimeout(this._joinRetryTimer1); this._joinRetryTimer1 = null; }
+                    if (this._joinRetryTimer2) { clearTimeout(this._joinRetryTimer2); this._joinRetryTimer2 = null; }
                     reject(new Error('Join timeout'));
                 }
-            }, 15000);
+            }, 25000);
         });
     }
 
@@ -74,6 +116,12 @@ export class Multiplayer {
         if (!data || !data.type) return;
 
         switch (data.type) {
+            case 'HOST_ROOM_ACK': {
+                // Host confirmation; ensure our roomCode is set
+                if (data.roomId) this.roomCode = data.roomId;
+                break;
+            }
+
             case 'PLAYER_LIST': {
                 // Normalize player list and remove duplicates
                 const byId = new Map();
@@ -149,6 +197,14 @@ export class Multiplayer {
                 if (!this.isHost && typeof data.timeLeft === 'number' && this.game) {
                     this.game.matchTimeLeft = data.timeLeft;
                     this.game.matchTimerActive = true;
+                }
+                break;
+            }
+
+            case 'ERROR': {
+                // Relay error from server (e.g., room not found) to pending join
+                if (this._joinReject) {
+                    this._joinReject(new Error(data.message || 'Server error'));
                 }
                 break;
             }

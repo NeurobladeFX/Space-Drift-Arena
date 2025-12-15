@@ -359,13 +359,19 @@ wss.on('connection', (ws) => {
           }
 
           case 'GAME_STATE':
-          case 'PROJECTILES': {
+          case 'PROJECTILES':
+          case 'START_GAME':
+          case 'DAMAGE':
+          case 'PLAYER_DEATH':
+          case 'SPAWN_PICKUP':
+          case 'MATCH_TIMER': {
             // relay to other participants in same room
-            if (!data.roomId || !data.playerId) break;
+            if (!data.roomId) break;
             const room = rooms.get(data.roomId);
             if (!room) break;
             for (const p of room) {
-              if (p.peerId === data.playerId) continue;
+              // If playerId is provided, skip echo back to the sender
+              if (data.playerId && p.peerId === data.playerId) continue;
               send(p.ws, data);
             }
             break;

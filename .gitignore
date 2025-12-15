@@ -1,0 +1,25 @@
+# Node modules
+node_modules/
+
+# Server data
+server/data/
+
+# Log files
+*.log
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE files
+.vscode/
+.qodo/
+
+# Temporary files
+*.tmp
+*.temp

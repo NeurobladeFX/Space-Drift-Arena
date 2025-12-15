@@ -130,7 +130,7 @@ export class Player {
 
         // REMOTE PLAYER INTERPOLATION
         if (this.isRemote) {
-            const lerpSpeed = 8; // Slightly slower for smoother interpolation
+            const lerpSpeed = 15; // Increased from 8 to 15 for more responsive interpolation
 
             // Position Lerp
             if (this.targetX !== undefined) {

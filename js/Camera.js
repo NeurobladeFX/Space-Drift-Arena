@@ -4,16 +4,14 @@ export class Camera {
     constructor(canvasWidth, canvasHeight) {
         this.x = 0;
         this.y = 0;
-        this.targetX = 0;
-        this.targetY = 0;
         this.canvasWidth = canvasWidth;
         this.canvasHeight = canvasHeight;
-        this.smoothing = 0.1; // Lower = smoother, higher = more responsive
-        this.zoom = 1; // Default zoom level
+        this.targetX = 0;
+        this.targetY = 0;
+        this.smoothing = 0.2; // Increased from 0.1 for smoother camera following
+        this.zoom = 1;
         this.targetZoom = 1;
-        this.zoom = 1; // Default zoom level
-        this.targetZoom = 1;
-        this.zoomSmoothing = 0.1; // Increased for faster zoom response
+        this.zoomSmoothing = 0.15; // Increased from 0.1 for smoother zoom response
     }
 
     follow(target) {

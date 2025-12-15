@@ -882,9 +882,9 @@ class Game {
             this.ui.updateTimer(0);
         }
 
-        // Send multiplayer state (Throttled to ~20 times per second to reduce lag)
+        // Send multiplayer state (Throttled to ~30 times per second for better responsiveness)
         const now = Date.now();
-        if (this.gameMode === 'multiplayer' && this.player && (now - (this._lastNetworkUpdate || 0) > 50)) {
+        if (this.gameMode === 'multiplayer' && this.player && (now - (this._lastNetworkUpdate || 0) > 33)) {
             this._lastNetworkUpdate = now;
             this.multiplayer.sendGameState({
                 x: this.player.x,

@@ -363,8 +363,9 @@ export class Player {
     }
 
     render(ctx, camera) {
-        if (!this.alive) return;
-
+        // Log for debugging
+        console.log(`[Player.render] Rendering player ${this.id}, alive=${this.alive}, isRemote=${this.isRemote}`);
+        
         // Convert world coordinates to screen coordinates
         const screenX = this.x - camera.x;
         const screenY = this.y - camera.y;

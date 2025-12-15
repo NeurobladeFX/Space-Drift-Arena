@@ -177,6 +177,9 @@ class Game {
             }
             
             const remotePlayer = this.remotePlayers[playerData.id];
+            
+            // Log player data for debugging
+            console.log(`[Main] Processing PLAYER_JOINED for ${playerData.id}`, playerData);
 
             // Set properties from received data
             remotePlayer.id = playerData.id;
@@ -188,6 +191,9 @@ class Game {
             remotePlayer.weapon = playerData.weapon || remotePlayer.weapon || 'pistol';
             remotePlayer.ammo = typeof playerData.ammo === 'number' ? playerData.ammo : (remotePlayer.ammo || Infinity);
             remotePlayer.alive = playerData.alive !== undefined ? playerData.alive : (remotePlayer.alive !== undefined ? remotePlayer.alive : true);
+            
+            // Log alive status
+            console.log(`[Main] Remote player ${playerData.id} alive status: ${remotePlayer.alive}`);
             
             // Set initial position if provided
             if (playerData.x !== undefined) remotePlayer.x = playerData.x;
@@ -212,7 +218,7 @@ class Game {
                 this.loadCharacterSprite(remotePlayer);
             }
 
-            console.log(`[Main] Remote player registered: ${playerData.id} (${remotePlayer.name}) at (${remotePlayer.x}, ${remotePlayer.y}), angle: ${remotePlayer.angle.toFixed(3)}`);
+            console.log(`[Main] Remote player registered: ${playerData.id} (${remotePlayer.name}) at (${remotePlayer.x}, ${remotePlayer.y}), angle: ${remotePlayer.angle.toFixed(3)}, alive: ${remotePlayer.alive}`);
         };
 
         this.multiplayer.onPlayerLeft = (playerId) => {
@@ -266,6 +272,9 @@ class Game {
         this.multiplayer.onGameStateUpdate = (playerId, playerData) => {
             if (this.gameState === 'playing' && this.remotePlayers[playerId]) {
                 const player = this.remotePlayers[playerId];
+                
+                // Log player data for debugging
+                console.log(`[Main] Processing GAME_STATE_UPDATE for ${playerId}`, playerData);
 
                 // Log angle updates for debugging
                 if (playerData.aimAngle !== undefined) {
@@ -282,7 +291,10 @@ class Game {
 
                 // Update other properties
                 if (playerData.hp !== undefined) player.hp = playerData.hp;
-                if (playerData.alive !== undefined) player.alive = playerData.alive;
+                if (playerData.alive !== undefined) {
+                    player.alive = playerData.alive;
+                    console.log(`[Main] Remote player ${playerId} alive status updated to: ${player.alive}`);
+                }
                 if (playerData.aimAngle !== undefined) player.targetAngle = playerData.aimAngle; // Interpolate rotation
                 if (playerData.vx !== undefined) player.vx = playerData.vx;
                 if (playerData.vy !== undefined) player.vy = playerData.vy;
@@ -301,7 +313,7 @@ class Game {
                 }
                 
                 // Log for debugging (moved to show interpolated values)
-                console.log(`[Main] Updated remote player ${playerId}: pos(${player.x.toFixed(1)}, ${player.y.toFixed(1)}), hp:${player.hp}, weapon:${player.weapon}, angle:${player.angle.toFixed(3)} (target: ${player.targetAngle !== undefined ? player.targetAngle.toFixed(3) : 'N/A'})`);
+                console.log(`[Main] Updated remote player ${playerId}: pos(${player.x.toFixed(1)}, ${player.y.toFixed(1)}), hp:${player.hp}, weapon:${player.weapon}, angle:${player.angle.toFixed(3)} (target: ${player.targetAngle !== undefined ? player.targetAngle.toFixed(3) : 'N/A'}), alive:${player.alive}`);
             } else if (this.gameState === 'playing') {
                 console.warn(`[Main] Received game state update for unknown player: ${playerId}`);
             }
@@ -1031,8 +1043,13 @@ class Game {
         // Draw remote players (multiplayer)
         for (let peerId in this.remotePlayers) {
             const remotePlayer = this.remotePlayers[peerId];
+            // Log for debugging
+            console.log(`[Render] Checking remote player ${peerId}: alive=${remotePlayer.alive}, x=${remotePlayer.x}, y=${remotePlayer.y}`);
             if (remotePlayer && remotePlayer.alive) {
+                console.log(`[Render] Rendering remote player ${peerId}`);
                 remotePlayer.render(ctx, this.camera);
+            } else {
+                console.log(`[Render] Skipping remote player ${peerId}: remotePlayer=${!!remotePlayer}, alive=${remotePlayer ? remotePlayer.alive : 'N/A'}`);
             }
         }
 

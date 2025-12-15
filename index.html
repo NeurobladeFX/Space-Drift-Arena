@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- Allow connections to local server and PeerJS -->
     <meta http-equiv="Content-Security-Policy"
-        content="default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: *; connect-src 'self' ws://localhost:3000 http://localhost:3000 https://0.peerjs.com wss://0.peerjs.com wss://space-drift-arena.onrender.com *;">
+        content="default-src * 'unsafe-inline' 'unsafe-eval' data: blob:; connect-src * ws: wss: http: https:; img-src * data: blob:; media-src *">
     <title>Space Drift Arena</title>
     <link rel="stylesheet" href="styles/main.css">
     <link rel="stylesheet" href="styles/hud-items.css">
@@ -353,7 +353,6 @@
     <div id="shopScreen" class="screen">
         <!-- Animated Particle Background -->
         <div class="shop-particles">
-            <div class="particle"></div>
             <div class="particle"></div>
             <div class="particle"></div>
             <div class="particle"></div>

@@ -212,7 +212,7 @@ class Game {
                 this.loadCharacterSprite(remotePlayer);
             }
 
-            console.log(`[Main] Remote player registered: ${playerData.id} (${remotePlayer.name}) at (${remotePlayer.x}, ${remotePlayer.y})`);
+            console.log(`[Main] Remote player registered: ${playerData.id} (${remotePlayer.name}) at (${remotePlayer.x}, ${remotePlayer.y}), angle: ${remotePlayer.angle.toFixed(3)}`);
         };
 
         this.multiplayer.onPlayerLeft = (playerId) => {
@@ -223,7 +223,6 @@ class Game {
         };
 
         // onPlayerData handler removed to prevent conflict with onGameStateUpdate + Interpolation
-
         this.multiplayer.onWeaponPickupSpawn = (pickupData) => {
             if (this.gameMode === 'multiplayer') {
                 // Check if pickup already exists (by ID or position overlap)
@@ -268,6 +267,11 @@ class Game {
             if (this.gameState === 'playing' && this.remotePlayers[playerId]) {
                 const player = this.remotePlayers[playerId];
 
+                // Log angle updates for debugging
+                if (playerData.aimAngle !== undefined) {
+                    console.log(`[Main] Updating remote player ${playerId} angle from ${player.angle.toFixed(3)} to ${playerData.aimAngle.toFixed(3)}`);
+                }
+
                 // Update position (Target interpolation)
                 if (playerData.x !== undefined) player.targetX = playerData.x;
                 if (playerData.y !== undefined) player.targetY = playerData.y;
@@ -296,8 +300,8 @@ class Game {
                     this.loadCharacterSprite(player);
                 }
                 
-                // Log for debugging
-                console.log(`[Main] Updated remote player ${playerId}: pos(${player.x.toFixed(1)}, ${player.y.toFixed(1)}), hp:${player.hp}, weapon:${player.weapon}`);
+                // Log for debugging (moved to show interpolated values)
+                console.log(`[Main] Updated remote player ${playerId}: pos(${player.x.toFixed(1)}, ${player.y.toFixed(1)}), hp:${player.hp}, weapon:${player.weapon}, angle:${player.angle.toFixed(3)} (target: ${player.targetAngle !== undefined ? player.targetAngle.toFixed(3) : 'N/A'})`);
             } else if (this.gameState === 'playing') {
                 console.warn(`[Main] Received game state update for unknown player: ${playerId}`);
             }
@@ -767,6 +771,16 @@ class Game {
                     if (this.gameMode === 'multiplayer') {
                         this.multiplayer.sendProjectiles(newProjectiles);
                     }
+                }
+            }
+        }
+
+        // Update remote players (for interpolation)
+        if (this.gameMode === 'multiplayer') {
+            for (let peerId in this.remotePlayers) {
+                const remotePlayer = this.remotePlayers[peerId];
+                if (remotePlayer) {
+                    remotePlayer.update(deltaTime, this.map.width, this.map.height);
                 }
             }
         }

@@ -52,16 +52,21 @@ export class Multiplayer {
             const originalHandler = this.handleData;
             let ackReceived = false;
             
-            this.handleData = (data) => {
-                console.log(`[Multiplayer] Handling message in hostGame: ${data.type}`, data);
+            // Create a wrapper function to ensure proper handling
+            const tempHandler = (data) => {
+                console.log(`[Multiplayer] Handling message in tempHandler: ${data.type}`, data);
                 
                 if (data.type === 'HOST_ROOM_ACK') {
-                    console.log('[Multiplayer] Received HOST_ROOM_ACK, room created successfully');
+                    console.log('[Multiplayer] Received HOST_ROOM_ACK in tempHandler, room created successfully');
                     ackReceived = true;
-                    // Restore original handler
+                    // Restore original handler immediately
                     this.handleData = originalHandler;
-                    // Call original handler for this message
-                    originalHandler.call(this, data);
+                    try {
+                        // Call original handler for this message
+                        originalHandler.call(this, data);
+                    } catch (e) {
+                        console.error('[Multiplayer] Error calling original handler:', e);
+                    }
                     resolve(roomId);
                     return;
                 }
@@ -69,20 +74,31 @@ export class Multiplayer {
                 // Handle errors
                 if (data.type === 'ERROR') {
                     console.log('[Multiplayer] Received ERROR during hostGame:', data.message);
-                    // Restore original handler
+                    ackReceived = true;
+                    // Restore original handler immediately
                     this.handleData = originalHandler;
                     reject(new Error(data.message || 'Failed to create room'));
                     return;
                 }
                 
                 // Call original handler for other messages
-                originalHandler.call(this, data);
+                try {
+                    originalHandler.call(this, data);
+                } catch (e) {
+                    console.error('[Multiplayer] Error calling original handler for other message:', e);
+                }
             };
             
-            // Inform server to create room
-            console.log('[Multiplayer] Sending HOST_ROOM message to matchmaker');
-            this.matchmaker.send({ type: 'HOST_ROOM', roomId: roomId, peerId: this.localId, meta: { name: this.localPlayerName, avatar: this.localAvatar || null } });
-            console.log('[Multiplayer] Hosting room via server:', roomId);
+            // Set the temporary handler
+            this.handleData = tempHandler;
+            
+            // Small delay to ensure handler is set before sending message
+            setTimeout(() => {
+                // Inform server to create room
+                console.log('[Multiplayer] Sending HOST_ROOM message to matchmaker');
+                this.matchmaker.send({ type: 'HOST_ROOM', roomId: roomId, peerId: this.localId, meta: { name: this.localPlayerName, avatar: this.localAvatar || null } });
+                console.log('[Multiplayer] Hosting room via server:', roomId);
+            }, 10);
             
             // Set timeout
             setTimeout(() => {
@@ -95,7 +111,6 @@ export class Multiplayer {
             }, 10000); // 10 second timeout
         });
     }
-
     // Join existing game
     async joinGame(roomCode) {
         await this.init();
@@ -188,13 +203,18 @@ export class Multiplayer {
 
     // Handle messages coming from the matchmaker/relay server (Render)
     handleData(data) {
-        console.log(`[Multiplayer] Received message: ${data.type}`, data);
-        if (!data || !data.type) return;
+        console.log(`[Multiplayer] Received message in handleData: ${data.type}`, data);
+        if (!data || !data.type) {
+            console.log('[Multiplayer] Invalid message data, returning early');
+            return;
+        }
 
         switch (data.type) {
             case 'HOST_ROOM_ACK': {
+                console.log('[Multiplayer] Processing HOST_ROOM_ACK in handleData:', data);
                 // Host confirmation; ensure our roomCode is set
                 if (data.roomId) this.roomCode = data.roomId;
+                console.log('[Multiplayer] HOST_ROOM_ACK processed, roomCode set to:', this.roomCode);
                 break;
             }
 
@@ -304,7 +324,17 @@ export class Multiplayer {
     startGame(settings = {}) {
         if (!this.isHost) return;
 
-        this.broadcast({ type: 'START_GAME', settings });
+        const data = {
+            type: 'START_GAME',
+            roomId: this.roomCode,
+            settings
+        };
+
+        if (this.useServer && this.matchmaker && this.matchmaker.ws) {
+            this.matchmaker.send(data);
+        } else {
+            this.broadcast({ type: 'START_GAME', settings });
+        }
 
         if (this.onGameStart) {
             this.onGameStart(settings);

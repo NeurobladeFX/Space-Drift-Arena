@@ -61,12 +61,26 @@ export class Matchmaker {
     handleMessage(ev) {
         let msg;
         try { msg = JSON.parse(ev.data); } catch (e) { return; }
+        // Reduce logging frequency - only log important messages
+        if (msg.type !== 'GAME_STATE' && msg.type !== 'MATCH_TIMER') {
+            console.log('[Matchmaker] Received message from server:', msg);
+        }
         // If this is a room/relay message, forward to multiplayer handler
-        const roomTypes = ['PLAYER_LIST','PLAYER_JOINED','PLAYER_LEFT','GAME_STATE','PROJECTILES','HOST_ROOM_ACK','ERROR'];
+        const roomTypes = ['PLAYER_LIST','PLAYER_JOINED','PLAYER_LEFT','GAME_STATE','PROJECTILES','HOST_ROOM_ACK','ERROR','START_GAME','DAMAGE','PLAYER_DEATH','SPAWN_PICKUP','MATCH_TIMER'];
         if (msg && msg.type && roomTypes.includes(msg.type)) {
+            // Reduce logging frequency - only log important message types
+            if (msg.type !== 'GAME_STATE' && msg.type !== 'MATCH_TIMER') {
+                console.log('[Matchmaker] Forwarding room message to multiplayer handler:', msg.type);
+            }
             if (this.multiplayer && this.multiplayer.handleData) {
+                // Reduce logging frequency - only log important message types
+                if (msg.type !== 'GAME_STATE' && msg.type !== 'MATCH_TIMER') {
+                    console.log('[Matchmaker] Calling multiplayer.handleData with message:', msg.type);
+                }
                 this.multiplayer.handleData(msg);
                 return;
+            } else {
+                console.log('[Matchmaker] No multiplayer handler available for message:', msg.type);
             }
         }
 
@@ -121,15 +135,25 @@ export class Matchmaker {
     }
 
     send(obj) {
-        console.log('[Matchmaker] Sending message:', obj);
+        // Reduce logging frequency - only log important message types
+        if (obj.type !== 'GAME_STATE') {
+            console.log('[Matchmaker] Sending message:', obj.type);
+        }
         if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
-            console.log('[Matchmaker] WebSocket not open, attempting to connect');
+            console.log('[Matchmaker] WebSocket not open (readyState: ' + (this.ws ? this.ws.readyState : 'null') + '), attempting to connect');
             this.connect();
             setTimeout(() => this.send(obj), 200);
             return;
         }
-        this.ws.send(JSON.stringify(obj));
-        console.log('[Matchmaker] Message sent successfully');
+        try {
+            this.ws.send(JSON.stringify(obj));
+            // Reduce logging frequency - only log important message types
+            if (obj.type !== 'GAME_STATE') {
+                console.log('[Matchmaker] Message sent successfully');
+            }
+        } catch (e) {
+            console.error('[Matchmaker] Failed to send message:', e);
+        }
     }
 
     findMatch(meta = {}) {

@@ -144,10 +144,14 @@ export class Player {
             if (this.targetAngle !== undefined) {
                 let diff = this.targetAngle - this.angle;
                 // Normalize to -PI to PI
-                while (diff > Math.PI) diff -= Math.PI * 2;
-                while (diff < -Math.PI) diff += Math.PI * 2;
+                while (diff > Math.PI) diff -= 2 * Math.PI;
+                while (diff < -Math.PI) diff += 2 * Math.PI;
 
                 this.angle += diff * lerpSpeed * deltaTime;
+                // Log angle changes for debugging - reduced frequency
+                if (Math.abs(diff) > 0.01) {
+                    console.log(`[Player] Interpolating angle for ${this.id}: ${this.angle.toFixed(3)} (target: ${this.targetAngle.toFixed(3)})`);
+                }
             }
             
             // Gradually reduce velocity for smoother stopping

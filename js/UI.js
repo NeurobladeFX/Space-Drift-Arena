@@ -97,6 +97,14 @@ export class UI {
 
         // Friend mode
         document.getElementById('hostGameBtn').addEventListener('click', () => {
+            console.log('[UI] Host game button clicked');
+            // Prevent multiple rapid clicks
+            const btn = document.getElementById('hostGameBtn');
+            btn.disabled = true;
+            setTimeout(() => {
+                btn.disabled = false;
+            }, 2000); // Re-enable after 2 seconds
+            
             this.onHostClick && this.onHostClick();
         });
 

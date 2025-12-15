@@ -299,8 +299,12 @@ const rooms = new Map();
 
 function send(ws, obj) {
   try {
+    console.log(`[SERVER] Sending message to client:`, obj);
     ws.send(JSON.stringify(obj));
-  } catch (e) { }
+    console.log(`[SERVER] Message sent successfully`);
+  } catch (e) { 
+    console.error(`[SERVER] Failed to send message:`, e);
+  }
 }
 
 wss.on('connection', (ws) => {
@@ -317,14 +321,18 @@ wss.on('connection', (ws) => {
           // Room lifecycle and in-game relay messages
           case 'HOST_ROOM': {
             // data: { roomId, peerId, meta }
-            if (!data.roomId || !data.peerId) break;
+            if (!data.roomId || !data.peerId) {
+              console.log(`[SERVER] HOST_ROOM missing required fields: roomId=${data.roomId}, peerId=${data.peerId}`);
+              break;
+            }
             const roomId = data.roomId;
             console.log(`[SERVER] Creating room: ${roomId} for peer: ${data.peerId}`);
             rooms.set(roomId, new Set());
             rooms.get(roomId).add({ ws, peerId: data.peerId, meta: data.meta || {} });
             // send confirmation
+            console.log(`[SERVER] Sending HOST_ROOM_ACK to peer: ${data.peerId}`);
             send(ws, { type: 'HOST_ROOM_ACK', roomId });
-            console.log(`[SERVER] Room ${roomId} created successfully`);
+            console.log(`[SERVER] Room ${roomId} created successfully and HOST_ROOM_ACK sent`);
             break;
           }
 

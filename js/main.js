@@ -37,7 +37,15 @@ class Game {
         // For local development, use ws://localhost:3000
         // For production deployment, use wss://space-drift-arena.onrender.com (standard port 443)
         const matchmakerUrl = isLocal ? 'ws://localhost:3000' : 'wss://space-drift-arena.onrender.com';
+        // Ensure HTTPS submissions when running on itch.io or any HTTPS host
+        this.serverBase = isLocal ? 'http://localhost:3000' : 'https://space-drift-arena.onrender.com';
         this.matchmaker = new Matchmaker(matchmakerUrl, this.multiplayer, this.ui);
+        // Use server-mediated multiplayer rather than P2P when matchmaker is present
+        this.multiplayer.useServer = true;
+        this.multiplayer.matchmaker = this.matchmaker;
+
+        // Connect matchmaker socket early (needed for server-mediated rooms)
+        try { this.matchmaker.connect(); } catch (e) { console.warn('Matchmaker connect failed', e); }
 
         // Initialize Peer early so we can register with matchmaker
         this.multiplayer.init().then(id => {
@@ -1364,7 +1372,7 @@ class Game {
         // Submit leaderboard and match history to server (if available)
         (async () => {
             try {
-                const serverBase = 'http://localhost:3000';
+                const serverBase = this.serverBase || (window.location.protocol === 'https:' ? 'https://space-drift-arena.onrender.com' : 'http://localhost:3000');
 
                 // Leaderboard submission
                 const profile = this.shop.getProfile();

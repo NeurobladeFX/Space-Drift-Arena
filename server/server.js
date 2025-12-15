@@ -294,6 +294,9 @@ const pendingMatches = new Map(); // hostId -> {hostWs, peers: [{peerId, ws}], t
 const MAX_PLAYERS = 6;
 const MIN_PLAYERS = 2;
 
+// Rooms for in-game relay: roomId -> Set of { ws, peerId, meta }
+const rooms = new Map();
+
 function send(ws, obj) {
   try {
     ws.send(JSON.stringify(obj));
@@ -311,6 +314,62 @@ wss.on('connection', (ws) => {
     // Use an async IIFE so we can await Redis checks
     (async () => {
       switch (data.type) {
+          // Room lifecycle and in-game relay messages
+          case 'HOST_ROOM': {
+            // data: { roomId, peerId, meta }
+            if (!data.roomId || !data.peerId) break;
+            const roomId = data.roomId;
+            rooms.set(roomId, new Set());
+            rooms.get(roomId).add({ ws, peerId: data.peerId, meta: data.meta || {} });
+            // send confirmation
+            send(ws, { type: 'HOST_ROOM_ACK', roomId });
+            break;
+          }
+
+          case 'JOIN_ROOM': {
+            // data: { roomId, peerId, meta }
+            if (!data.roomId || !data.peerId) break;
+            const roomId = data.roomId;
+            const room = rooms.get(roomId);
+            if (!room) { send(ws, { type: 'ERROR', message: 'Room not found' }); break; }
+            // add participant
+            room.add({ ws, peerId: data.peerId, meta: data.meta || {} });
+            // build players list
+            const players = [];
+            for (const p of room) players.push({ id: p.peerId, name: p.meta && p.meta.name ? sanitizeName(p.meta.name) : 'Player', avatar: p.meta && p.meta.avatar ? p.meta.avatar : null });
+            // notify all in room
+            for (const p of room) send(p.ws, { type: 'PLAYER_LIST', players });
+            break;
+          }
+
+          case 'LEAVE_ROOM': {
+            if (!data.roomId || !data.peerId) break;
+            const room = rooms.get(data.roomId);
+            if (!room) break;
+            // remove participant
+            for (const p of Array.from(room)) {
+              if (p.peerId === data.peerId) room.delete(p);
+            }
+            // notify remaining
+            const players = [];
+            for (const p of room) players.push({ id: p.peerId, name: p.meta && p.meta.name ? sanitizeName(p.meta.name) : 'Player', avatar: p.meta && p.meta.avatar ? p.meta.avatar : null });
+            for (const p of room) send(p.ws, { type: 'PLAYER_LIST', players });
+            if (room.size === 0) rooms.delete(data.roomId);
+            break;
+          }
+
+          case 'GAME_STATE':
+          case 'PROJECTILES': {
+            // relay to other participants in same room
+            if (!data.roomId || !data.playerId) break;
+            const room = rooms.get(data.roomId);
+            if (!room) break;
+            for (const p of room) {
+              if (p.peerId === data.playerId) continue;
+              send(p.ws, data);
+            }
+            break;
+          }
         case 'FIND_MATCH': {
           if (!data.peerId) return;
           // Rate limit FIND_MATCH per peerId (once every 3s)

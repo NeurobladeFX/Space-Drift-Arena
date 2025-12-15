@@ -1,6 +1,9 @@
 export class Multiplayer {
     constructor(game) {
         this.game = game;
+        this.useServer = false; // switched on by main when matchmaker available
+        this.matchmaker = null;
+        this.localId = `p_${Date.now().toString(36)}_${Math.random().toString(36).slice(2,6)}`;
         this.peer = null;
         this.peerId = null;
         this.isHost = false;
@@ -25,9 +28,11 @@ export class Multiplayer {
 
     // Initialize PeerJS with explicit configuration for better compatibility
     init() {
+        if (this.useServer) {
+            return Promise.resolve(this.localId);
+        }
         return new Promise((resolve, reject) => {
             // Use the default PeerJS cloud server with explicit configuration
-            // This ensures consistent behavior across different environments
             this.peer = new Peer({
                 config: {
                     iceServers: [
@@ -36,7 +41,7 @@ export class Multiplayer {
                         { urls: 'stun:stun2.l.google.com:19302' }
                     ]
                 },
-                debug: 2 // Enable debug logging for troubleshooting
+                debug: 2
             });
 
             this.peer.on('open', (id) => {
@@ -47,11 +52,6 @@ export class Multiplayer {
 
             this.peer.on('error', (err) => {
                 console.error('Peer error:', err);
-                // Provide more detailed error information
-                console.error('Peer error details:', {
-                    type: err.type,
-                    message: err.message
-                });
                 reject(err);
             });
         });
@@ -59,9 +59,26 @@ export class Multiplayer {
 
     // Host a new game
     async hostGame() {
+        if (this.useServer) {
+            if (!this.matchmaker || !this.matchmaker.ws) throw new Error('Matchmaker not connected');
+            this.isHost = true;
+            const roomId = `room_${Date.now().toString(36)}`;
+            this.roomCode = roomId;
+            this.players = [{ id: this.localId, name: this.localPlayerName || 'Host', isHost: true }];
+            // Inform server to create room
+            this.matchmaker.send({ type: 'HOST_ROOM', roomId: roomId, peerId: this.localId, meta: { name: this.localPlayerName, avatar: this.localAvatar || null } });
+            console.log('[Multiplayer] Hosting room via server:', roomId);
+            return roomId;
+        }
+
         if (!this.peer) {
             await this.init();
         }
+                // If we were awaiting join, resolve now
+                if (this._joinResolve) {
+                    this._joinResolve(true);
+                    this._joinResolve = null;
+                }
 
         this.isHost = true;
         this.roomCode = this.generateRoomCode();
@@ -150,225 +167,92 @@ export class Multiplayer {
 
                 // Timeout after 15 seconds with a clearer message
                 connectionTimeout = setTimeout(() => {
+                    // Server-mediated join
+                    if (this.useServer) {
+                        if (!this.matchmaker || !this.matchmaker.ws) return reject(new Error('Matchmaker not connected'));
+                        this.isHost = false;
+                        this.roomCode = roomCode;
+                        // send join request to server
+                        this.matchmaker.send({ type: 'JOIN_ROOM', roomId: roomCode, peerId: this.localId, meta: { name: this.localPlayerName, avatar: this.localAvatar || null } });
+                        // wait for PLAYER_LIST via handleData
+                        this._joinResolve = (ok) => {
+                            this._joinResolve = null;
+                            if (ok) resolve(true); else reject(new Error('Join failed'));
+                        };
+                        // timeout safeguard
+                        setTimeout(() => {
+                            if (this._joinResolve) {
+                                this._joinResolve = null;
+                                reject(new Error('Join timeout'));
+                            }
+                        }, 10000);
+                        return;
+                    }
+
+                    // Fallback: original PeerJS join path is not safe here; just timeout the attempt
                     if (!conn.open) {
                         conn.close();
-                        console.error(`[Multiplayer] Connection timeout after 15 seconds. Could not reach peer ${hostPeerId}`);
-                        reject(new Error(`Connection timeout. Host may be offline or unreachable. Please check that:\n1. The room code "${roomCode}" is correct\n2. The host is still online\n3. Both players can access the matchmaking server`));
+                        reject(new Error('Connection timeout. Host may be offline.'));
                     }
                 }, 15000);
             });
         } catch (err) {
-            console.error('[Multiplayer] Join error:', err);
-            throw new Error(`Failed to join room: ${err.message}`);
+            console.error('Join error:', err);
+            throw new Error('Failed to join room. Please check the code.');
         }
     }
 
-    handleIncomingConnection(conn) {
-        console.log('New player connected:', conn.peer);
-
-        conn.on('open', () => {
-            this.connections.push(conn);
-
-            // Send current player list
-            conn.send({
-                type: 'PLAYER_LIST',
-                players: this.players
-            });
-            // Send host's player data to the newly connected player
-            conn.send({
-                type: 'PLAYER_JOINED',
-                player: {
-                    id: this.peerId,
-                    name: this.localPlayerName || 'Host',
-                    isHost: true,
-                    characterId: this.game.shop.getEquippedCharacter(), // Sync character ID in game state
-                    aimAngle: this.game.player ? this.game.player.angle : 0,
-                    weapon: this.game.player ? this.game.player.weapon : 'pistol',
-                    avatar: (this.game.player && this.game.player.avatar) || null,
-                    color: this.game.player ? this.game.player.color : '#FFFFFF'
-                }
-            });
-        });
-
-        conn.on('data', (data) => {
-            this.handleData(data, conn);
-        });
-
-        conn.on('close', () => {
-            console.log('Player disconnected:', conn.peer);
-            this.removePlayer(conn.peer);
-        });
-    }
-
-    handleHostConnection(conn) {
-        console.log('Connected to host');
-        this.connections = [conn];
-
-        conn.on('data', (data) => {
-            this.handleData(data, conn);
-        });
-
-        conn.on('close', () => {
-            console.log('Disconnected from host');
-            alert('Connection to host lost');
-        });
-
-        // Send join request
-        conn.send({
-            type: 'JOIN_REQUEST',
-            playerId: this.peerId,
-            playerName: this.localPlayerName || 'Player',
-            characterId: this.game.shop.getEquippedCharacter() // Send equipped character ID
-        });
-    }
-
-    handleData(data, conn) {
-        const uniqueById = (arr) => {
-            const seen = new Set();
-            return arr.filter(p => {
-                if (seen.has(p.id)) return false;
-                seen.add(p.id);
-                return true;
-            });
-        };
+    // Handle messages coming from the matchmaker/relay server (Render)
+    handleData(data) {
+        if (!data || !data.type) return;
 
         switch (data.type) {
-            case 'JOIN_REQUEST':
-                if (this.isHost && this.players.length < this.maxPlayers) {
-                    const newPlayer = {
-                        id: data.playerId,
-                        name: data.playerName,
-                        characterId: data.characterId || 'default_soldier', // Sync character ID
-                        isHost: false,
-                        x: 400, // Default spawn position
-                        y: 300,
-                        hp: 100,
-                        alive: true,
-                        weapon: 'pistol',
-                        ammo: Infinity
-                    };
-                    
-                    // Prevent duplicates
-                    const existingPlayerIndex = this.players.findIndex(p => p.id === newPlayer.id);
-                    if (existingPlayerIndex !== -1) {
-                        // Update existing player
-                        this.players[existingPlayerIndex] = newPlayer;
-                        console.log('[Multiplayer] Updated existing player:', newPlayer.id);
-                    } else {
-                        // Add new player
-                        this.players.push(newPlayer);
-                        console.log('[Multiplayer] Added new player:', newPlayer.id);
-                    }
-
-                    // Notify all players about the new player
-                    this.broadcast({ type: 'PLAYER_JOINED', player: newPlayer });
-
-                    // Send updated player list to the newly joined player
-                    if (conn && conn.open) {
-                        conn.send({
-                            type: 'PLAYER_LIST',
-                            players: this.players
-                        });
-                    }
-
-                    // Update UI
-                    if (this.onPlayerUpdate) {
-                        this.onPlayerUpdate(this.players);
-                    }
-                    
-                    // Notify runtime listeners about new player
-                    if (this.onPlayerJoined) {
-                        this.onPlayerJoined(newPlayer);
-                    }
-                    
-                    console.log('[Multiplayer] Player joined. Total players:', this.players.length);
-                } else if (this.players.length >= this.maxPlayers) {
-                    // Send error to client if room is full
-                    if (conn && conn.open) {
-                        conn.send({ type: 'ERROR', message: 'Room is full' });
-                    }
-                }
-                break;
-
-            case 'PLAYER_LIST':
+            case 'PLAYER_LIST': {
                 // Normalize player list and remove duplicates
-                this.players = uniqueById(data.players);
-                if (this.onPlayerUpdate) {
-                    this.onPlayerUpdate(this.players);
+                const byId = new Map();
+                for (const p of (data.players || [])) {
+                    if (!p || !p.id) continue;
+                    byId.set(p.id, p);
                 }
+                this.players = Array.from(byId.values());
+                if (this.onPlayerUpdate) this.onPlayerUpdate(this.players);
+                // Resolve pending join promise if waiting
+                if (this._joinResolve) { this._joinResolve(true); this._joinResolve = null; }
                 break;
+            }
 
-            case 'PLAYER_JOINED':
-                // Check if player already exists
-                if (!this.players.some(p => p.id === data.player.id)) {
+            case 'PLAYER_JOINED': {
+                if (data.player && data.player.id && !this.players.some(p => p.id === data.player.id)) {
                     this.players.push(data.player);
                 }
-                if (this.onPlayerUpdate) {
-                    this.onPlayerUpdate(this.players);
-                }
-                if (this.onPlayerJoined) {
-                    this.onPlayerJoined(data.player);
-                }
+                if (this.onPlayerUpdate) this.onPlayerUpdate(this.players);
+                if (this.onPlayerJoined) this.onPlayerJoined(data.player);
                 break;
+            }
 
-            case 'START_GAME':
-                if (this.onGameStart) {
-                    this.onGameStart(data.settings || {});
-                }
+            case 'PLAYER_LEFT': {
+                if (data.playerId) this.removePlayer(data.playerId);
                 break;
+            }
 
-            case 'GAME_STATE':
-                // Receive other player's game state
-                if (this.onGameStateUpdate) {
-                    this.onGameStateUpdate(data.playerId, data.player);
-                }
-                
-                // Backwards-compatible hook used by main.js
-                if (this.onPlayerData) {
-                    // Fix: Access remotePlayers object instead of non-existent players array
-                    const player = this.game.remotePlayers ? this.game.remotePlayers[data.playerId] : null;
-                    const playerData = data.player;
-                    if (player) {
-                        if (playerData.x !== undefined) player.x = playerData.x;
-                        if (playerData.y !== undefined) player.y = playerData.y;
-                        if (playerData.vx !== undefined) player.vx = playerData.vx;
-                        if (playerData.vy !== undefined) player.vy = playerData.vy;
-                        if (playerData.angle !== undefined) player.angle = playerData.angle;
-                        if (playerData.aimAngle !== undefined) player.aimAngle = playerData.aimAngle; // Sync aim angle
-                        if (playerData.hp !== undefined) player.hp = playerData.hp;
-                        if (playerData.alive !== undefined) player.alive = playerData.alive;
-                        if (playerData.weapon) player.weapon = playerData.weapon;
-                        if (playerData.ammo !== undefined) player.ammo = playerData.ammo;
-                        if (playerData.name) player.name = playerData.name;
-                        if (playerData.avatar) player.avatar = playerData.avatar;
-                        if (playerData.characterId && player.characterId !== playerData.characterId) {
-                            player.characterId = playerData.characterId;
-                            this.loadCharacterSprite(player); // Load the correct sprite
-                        }
-                    }
-                    this.onPlayerData(Object.assign({ id: data.playerId }, data.player));
-                }
-                
-                // If we're host, forward this game state to all other connected peers
-                if (this.isHost) {
-                    this.broadcast({ type: 'GAME_STATE', playerId: data.playerId, player: data.player });
-                }
+            case 'START_GAME': {
+                if (this.onGameStart) this.onGameStart(data.settings || {});
                 break;
+            }
 
-            case 'PROJECTILES':
-                // Receive projectile spawn from other player
-                if (this.onProjectilesReceived) {
-                    this.onProjectilesReceived(data.playerId, data.projectiles);
-                }
-                if (this.onProjectileFired) {
-                    // Convert to a compatible payload for older handlers
+            case 'GAME_STATE': {
+                if (this.onGameStateUpdate) this.onGameStateUpdate(data.playerId, data.player);
+                if (this.onPlayerData) this.onPlayerData(Object.assign({ id: data.playerId }, data.player));
+                break;
+            }
+
+            case 'PROJECTILES': {
+                if (this.onProjectilesReceived) this.onProjectilesReceived(data.playerId, data.projectiles);
+                if (this.onProjectileFired && Array.isArray(data.projectiles)) {
                     data.projectiles.forEach(p => {
                         this.onProjectileFired({
                             id: p.id || `${data.playerId}_${Date.now()}`,
-                            x: p.x,
-                            y: p.y,
-                            vx: p.vx,
-                            vy: p.vy,
+                            x: p.x, y: p.y, vx: p.vx, vy: p.vy,
                             angle: p.angle || Math.atan2(p.vy || 0, p.vx || 1),
                             owner: data.playerId,
                             weaponId: p.weaponId || p.weapon || null,
@@ -376,70 +260,31 @@ export class Multiplayer {
                         });
                     });
                 }
-                // If host, forward projectile spawns to all connected peers
-                if (this.isHost) {
-                    this.broadcast({ type: 'PROJECTILES', playerId: data.playerId, projectiles: data.projectiles });
+                break;
+            }
+
+            case 'DAMAGE': {
+                if (this.onDamageReceived) this.onDamageReceived(data);
+                break;
+            }
+
+            case 'PLAYER_DEATH': {
+                if (this.onPlayerDeath) this.onPlayerDeath(data.victimId, data.killerId);
+                break;
+            }
+
+            case 'SPAWN_PICKUP': {
+                if (this.onWeaponPickupSpawn) this.onWeaponPickupSpawn(data.pickup);
+                break;
+            }
+
+            case 'MATCH_TIMER': {
+                if (!this.isHost && typeof data.timeLeft === 'number' && this.game) {
+                    this.game.matchTimeLeft = data.timeLeft;
+                    this.game.matchTimerActive = true;
                 }
                 break;
-
-            case 'DAMAGE':
-                // Receive damage
-                if (this.onDamageReceived) {
-                    this.onDamageReceived(data);
-                }
-                break;
-
-            case 'PLAYER_DEATH':
-                // Handle remote player death event
-                const { killerId, victimId } = data;
-
-                // Update victim status locally if they exist
-                if (this.game && this.game.remotePlayers[victimId]) {
-                    this.game.remotePlayers[victimId].alive = false;
-                }
-
-                // If WE are the killer, update our stats
-                if (killerId === this.peerId) {
-                    console.log('👑 I killed a player!');
-                    if (this.game && this.game.player) {
-                        this.game.player.kills++;
-                        // Save stats
-                        if (this.game.shop) {
-                            this.game.shop.updateStats(1, 0, false, false);
-                        }
-                    }
-                }
-                // If someone else was the killer, update their kill count in our view
-                else if (this.game && this.game.remotePlayers[killerId]) {
-                    this.game.remotePlayers[killerId].kills = (this.game.remotePlayers[killerId].kills || 0) + 1;
-                }
-
-                // Trigger callback if needed
-                if (this.onPlayerDeath) {
-                    this.onPlayerDeath(victimId, killerId);
-                }
-                break;
-
-            case 'SPAWN_PICKUP':
-                if (this.onWeaponPickupSpawn) {
-                    this.onWeaponPickupSpawn(data.pickup);
-                }
-                break;
-
-            case 'INPUT':
-                // Handle player input (host processes this)
-                break;
-
-            case 'MATCH_TIMER':
-                // Update local timer from host
-                if (!this.isHost && typeof data.timeLeft === 'number') {
-                    // Directly update game timer
-                    if (this.game) {
-                        this.game.matchTimeLeft = data.timeLeft;
-                        this.game.matchTimerActive = true;
-                    }
-                }
-                break;
+            }
         }
     }
 
@@ -478,17 +323,20 @@ export class Multiplayer {
 
     // NEW: Send game state update to all connected players
     sendGameState(playerData) {
-        if (!this.peer) return;
-
         const data = {
             type: 'GAME_STATE',
-            playerId: this.peerId,
+            playerId: this.useServer ? this.localId : this.peerId,
+            roomId: this.roomCode,
             player: playerData
         };
 
+        if (this.useServer && this.matchmaker && this.matchmaker.ws) {
+            this.matchmaker.send(data);
+            return;
+        }
+
+        if (!this.peer) return;
         this.broadcast(data);
-        
-        // Log for debugging
         if (this.isHost) {
             console.log('[Multiplayer] Host broadcasting game state to', this.connections.length, 'peers');
         } else {
@@ -498,8 +346,6 @@ export class Multiplayer {
 
     // NEW: Send projectile spawn event
     sendProjectiles(projectiles) {
-        if (!this.peer) return;
-
         const projectileData = projectiles.map(p => ({
             id: p.id || null,
             x: p.x,
@@ -515,51 +361,69 @@ export class Multiplayer {
 
         const data = {
             type: 'PROJECTILES',
-            playerId: this.peerId,
+            playerId: this.useServer ? this.localId : this.peerId,
+            roomId: this.roomCode,
             projectiles: projectileData
         };
 
+        if (this.useServer && this.matchmaker && this.matchmaker.ws) {
+            this.matchmaker.send(data);
+            return;
+        }
+
+        if (!this.peer) return;
         this.broadcast(data);
     }
 
     // Send damage notification to specific player
     sendDamage(targetId, damage) {
+        if (this.useServer && this.matchmaker && this.matchmaker.ws) {
+            this.matchmaker.send({ type: 'DAMAGE', roomId: this.roomCode, playerId: this.localId, targetId, damage, timestamp: Date.now() });
+            return;
+        }
         if (!this.peer) return;
         const conn = this.connections.find(c => c.peer === targetId);
         if (conn) {
             conn.send({
                 type: 'DAMAGE',
                 damage: damage,
-                attackerId: this.peerId, // Send who attacked
+                attackerId: this.peerId,
                 timestamp: Date.now()
             });
         }
     }
 
     sendPlayerDeath(killerId) {
+        if (this.useServer && this.matchmaker && this.matchmaker.ws) {
+            this.matchmaker.send({ type: 'PLAYER_DEATH', roomId: this.roomCode, victimId: this.localId, killerId });
+            return;
+        }
         if (!this.peer) return;
-        this.broadcast({
-            type: 'PLAYER_DEATH',
-            victimId: this.peerId,
-            killerId: killerId
-        });
+        this.broadcast({ type: 'PLAYER_DEATH', victimId: this.peerId, killerId: killerId });
     }
 
     sendWeaponPickup(pickupData) {
+        if (this.useServer && this.matchmaker && this.matchmaker.ws) {
+            this.matchmaker.send({ type: 'SPAWN_PICKUP', roomId: this.roomCode, pickup: pickupData });
+            return;
+        }
         if (!this.peer) return;
-        this.broadcast({
-            type: 'SPAWN_PICKUP',
-            pickup: pickupData
-        });
+        this.broadcast({ type: 'SPAWN_PICKUP', pickup: pickupData });
     }
 
     disconnect() {
+        if (this.useServer && this.matchmaker && this.roomCode) {
+            try { this.matchmaker.send({ type: 'LEAVE_ROOM', roomId: this.roomCode, peerId: this.localId }); } catch (e) {}
+            this.roomCode = null;
+            this.players = [];
+            this.connections = [];
+            return;
+        }
         for (let conn of this.connections) {
             conn.close();
         }
         this.connections = [];
         this.players = [];
-
         if (this.peer) {
             this.peer.destroy();
             this.peer = null;
@@ -589,10 +453,11 @@ export class Multiplayer {
     }
 
     sendMatchTimer(timeLeft) {
+        if (this.useServer && this.matchmaker && this.isHost) {
+            this.matchmaker.send({ type: 'MATCH_TIMER', roomId: this.roomCode, timeLeft });
+            return;
+        }
         if (!this.peer || !this.isHost) return;
-        this.broadcast({
-            type: 'MATCH_TIMER',
-            timeLeft: timeLeft
-        });
+        this.broadcast({ type: 'MATCH_TIMER', timeLeft: timeLeft });
     }
 }

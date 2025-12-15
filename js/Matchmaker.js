@@ -9,6 +9,7 @@ export class Matchmaker {
         this.ws = null;
         this.peerId = null;
         this.inQueue = false;
+        this.backoff = 1000; // start with 1s, double up to 16s on failures
     }
 
     setPeerId(id) {
@@ -60,6 +61,14 @@ export class Matchmaker {
     handleMessage(ev) {
         let msg;
         try { msg = JSON.parse(ev.data); } catch (e) { return; }
+        // If this is a room/relay message, forward to multiplayer handler
+        const roomTypes = ['PLAYER_LIST','PLAYER_JOINED','PLAYER_LEFT','GAME_STATE','PROJECTILES','HOST_ROOM_ACK','ERROR'];
+        if (msg && msg.type && roomTypes.includes(msg.type)) {
+            if (this.multiplayer && this.multiplayer.handleData) {
+                this.multiplayer.handleData(msg);
+                return;
+            }
+        }
 
         switch (msg.type) {
             case 'MAKE_HOST':

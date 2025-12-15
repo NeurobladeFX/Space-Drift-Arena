@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Allow connections to local server and PeerJS -->
+    <meta http-equiv="Content-Security-Policy"
+        content="default-src * 'unsafe-inline' 'unsafe-eval' data: blob:; connect-src * ws: wss: http: https:; img-src * data: blob:; media-src *">
+    <title>Space Drift Arena</title>
+    <link rel="stylesheet" href="styles/main.css">
+    <link rel="stylesheet" href="styles/hud-items.css">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+</head>
+
+<body>
+    <!-- Main Menu / Lobby -->
+    <div id="mainMenu" class="screen active">
+        <!-- Minimalist Geometric Elements -->
+        <div class="geometric-element geometric-circle"></div>
+        <div class="geometric-element geometric-square"></div>
+        <div class="geometric-element geometric-triangle"></div>
+
+        <!-- Animated Background Particles (50 particles) -->
+        <div class="lobby-particles" id="lobbyParticles"></div>
+
+        <!-- Profile Button in Main Menu -->
+        <div id="mainMenuProfile" class="main-menu-profile">
+            <div class="profile-summary">
+                <div class="profile-image">👤</div>
+                <div class="profile-details">
+                    <div class="xp-container">
+                        <div class="xp-bar-bg">
+                            <div id="mainMenuXpBar" class="xp-bar" style="width: 0%"></div>
+                        </div>
+                        <div class="xp-text">XP: <span id="mainMenuXpText">0</span>/<span id="mainMenuXpNext">100</span>
+                        </div>
+                    </div>
+                    <div class="badge-display">
+                        <div class="badge-icon" id="mainMenuBadge">🔰</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Watch Ad Options -->
+        <div class="watch-ad-container">
+            <button id="watchAdCoinsBtn" class="btn-watch-ad coins">
+                <div class="ad-icon">📺</div>
+                <div class="ad-content">
+                    <div class="ad-title">Watch Ad</div>
+                    <div class="ad-reward">+50-100 💰</div>
+                </div>
+            </button>
+            <button id="watchAdDiamondsBtn" class="btn-watch-ad diamonds">
+                <div class="ad-icon">📺</div>
+                <div class="ad-content">
+                    <div class="ad-title">Watch Ad</div>
+                    <div class="ad-reward">+5-10 💎</div>
+                </div>
+            </button>
+        </div>
+
+        <!-- Main Menu Buttons -->
+        <button id="playBtn" class="btn btn-primary btn-glow">
+            <span class="btn-icon">▶</span>
+            <span class="btn-text">PLAY NOW</span>
+            <div class="btn-shine"></div>
+        </button>
+        <div class="shop-button-container">
+            <img id="shopBtn" src="assets/ui/Shop.png" alt="Shop" class="shop-image-button">
+            <div class="shop-label">SHOP</div>
+        </div>
+
+        <div class="menu-container lobby-container">
+            <div class="logo">
+                <h1>SPACE DRIFT</h1>
+                <h2>ARENA</h2>
+                <div class="logo-subtitle">BATTLE ROYALE</div>
+            </div>
+            <div class="menu-buttons">
+                <button id="howToPlayBtn" class="btn btn-secondary btn-glow">
+                    <span class="btn-icon">?</span>
+                    <span class="btn-text">HOW TO PLAY</span>
+                    <div class="btn-shine"></div>
+                </button>
+            </div>
+            <div class="menu-footer">
+                <p>🚀 Move by shooting • ⚔️ Physics-based combat</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- How to Play Screen -->
+    <div id="howToPlayScreen" class="screen">
+        <div class="menu-container">
+            <h2>HOW TO PLAY</h2>
+            <div class="instructions">
+                <div class="instruction-item">
+                    <div class="instruction-icon">🎯</div>
+                    <div class="instruction-text">
+                        <h3>AIM</h3>
+                        <p>Move your mouse to aim</p>
+                    </div>
+                </div>
+                <div class="instruction-item">
+                    <div class="instruction-icon">🔫</div>
+                    <div class="instruction-text">
+                        <h3>SHOOT</h3>
+                        <p>Click to fire your weapon</p>
+                    </div>
+                </div>
+                <div class="instruction-item">
+                    <div class="instruction-icon">🚀</div>
+                    <div class="instruction-text">
+                        <h3>MOVE</h3>
+                        <p>Shooting creates recoil that pushes you backward</p>
+                    </div>
+                </div>
+                <div class="instruction-item">
+                    <div class="instruction-icon">💀</div>
+                    <div class="instruction-text">
+                        <h3>ELIMINATE</h3>
+                        <p>Reduce enemy HP to zero to win</p>
+                    </div>
+                </div>
+            </div>
+            <button id="backBtn" class="btn btn-secondary">← BACK</button>
+        </div>
+    </div>
+
+    <!-- Mode Selection Screen -->
+    <div id="modeSelectionScreen" class="screen">
+        <div class="menu-container">
+            <h2>SELECT MODE</h2>
+            <div class="menu-buttons">
+                <button id="singlePlayerBtn" class="btn btn-primary">
+                    <span class="btn-icon">🤖</span>
+                    <span class="btn-text">SINGLEPLAYER</span>
+                </button>
+                <button id="multiplayerBtn" class="btn btn-primary">
+                    <span class="btn-icon">👥</span>
+                    <span class="btn-text">MULTIPLAYER</span>
+                </button>
+            </div>
+            <button id="backToMainBtn" class="btn btn-secondary" style="margin-top: 20px;">← BACK</button>
+        </div>
+    </div>
+
+    <!-- Multiplayer Options Screen -->
+    <div id="multiplayerOptionsScreen" class="screen">
+        <div class="menu-container">
+            <h2>MULTIPLAYER</h2>
+            <p class="mode-description">Choose how to play online:</p>
+            <div class="menu-buttons">
+                <button id="friendModeBtn" class="btn btn-primary">
+                    <span class="btn-icon">👥</span>
+                    <span class="btn-text">PLAY WITH FRIENDS</span>
+                </button>
+                <p style="font-size: 14px; color: #A0A8C0; margin: 8px 0;">Host or join a private room</p>
+
+                <button id="randomMatchBtn" class="btn btn-primary" style="margin-top: 24px;">
+                    <span class="btn-icon">🎲</span>
+                    <span class="btn-text">RANDOM MATCH</span>
+                </button>
+                <p style="font-size: 14px; color: #A0A8C0; margin: 8px 0;">Find random opponents</p>
+            </div>
+            <button id="backToModeBtn" class="btn btn-secondary" style="margin-top: 20px;">← BACK</button>
+        </div>
+    </div>
+
+    <!-- Friend Mode Selection -->
+    <div id="friendModeScreen" class="screen">
+        <div class="menu-container">
+            <h2>PLAY WITH FRIENDS</h2>
+            <div class="menu-buttons">
+                <button id="hostGameBtn" class="btn btn-primary">
+                    <span class="btn-icon">📡</span>
+                    <span class="btn-text">HOST GAME</span>
+                </button>
+                <p style="font-size: 14px; color: #A0A8C0; margin: 8px 0;">Create a room and share code</p>
+
+                <button id="joinGameBtn" class="btn btn-primary" style="margin-top: 16px;">
+                    <span class="btn-icon">🔗</span>
+                    <span class="btn-text">JOIN GAME</span>
+                </button>
+                <p style="font-size: 14px; color: #A0A8C0; margin: 8px 0;">Enter friend's room code</p>
+            </div>
+            <button id="backToMultiBtn" class="btn btn-secondary" style="margin-top: 20px;">← BACK</button>
+        </div>
+    </div>
+
+    <!-- Host Lobby Screen -->
+    <div id="hostLobbyScreen" class="screen">
+        <div class="menu-container">
+            <h2>HOSTING GAME</h2>
+            <div class="room-code-container">
+                <p>Share this code with your friends:</p>
+                <div class="room-code-full" id="roomCodeDisplay">Loading...</div>
+                <button id="copyCodeBtn" class="btn btn-secondary" style="margin-top: 16px;">📋 COPY CODE</button>
+                <p id="copyStatus"
+                    style="font-size: 12px; color: #FFFFFF; text-shadow: 0 0 5px rgba(0, 0, 0, 0.8); margin-top: 8px; min-height: 20px;">
+                </p>
+            </div>
+            <div class="match-settings">
+                <h3>Match Settings</h3>
+                <div class="setting-row">
+                    <label for="matchDuration">Duration:</label>
+                    <select id="matchDuration" class="setting-select">
+                        <option value="120">2 Minutes</option>
+                        <option value="180">3 Minutes</option>
+                        <option value="240" selected>4 Minutes</option>
+                        <option value="300">5 Minutes</option>
+                        <option value="600">10 Minutes</option>
+                    </select>
+                </div>
+            </div>
+            <div class="player-list">
+                <h3>Players (<span id="playerCount">1</span>/6)</h3>
+                <div id="playerListContainer"></div>
+            </div>
+            <button id="startMatchBtn" class="btn btn-primary">START MATCH</button>
+            <button id="cancelHostBtn" class="btn btn-secondary" style="margin-top: 10px;">CANCEL</button>
+        </div>
+    </div>
+
+    <!-- Join Game Screen -->
+    <div id="joinGameScreen" class="screen">
+        <div class="menu-container">
+            <h2>JOIN GAME</h2>
+            <p>Enter your friend's room code:</p>
+            <p style="font-size: 12px; color: #A0A8C0; margin-bottom: 20px;">The code is shown on their screen when they
+                host</p>
+            <input type="text" id="roomCodeInput" class="room-code-input" placeholder="Paste code here" maxlength="40">
+            <div id="joinError" class="error-message"></div>
+            <button id="joinRoomBtn" class="btn btn-primary" style="margin-top: 20px;">JOIN</button>
+            <button id="cancelJoinBtn" class="btn btn-secondary" style="margin-top: 10px;">CANCEL</button>
+        </div>
+    </div>
+
+    <!-- Random Match Screen -->
+    <div id="randomMatchScreen" class="screen">
+        <div class="menu-container">
+            <h2>FINDING MATCH...</h2>
+            <div class="loading-spinner">
+                <div class="spinner"></div>
+            </div>
+            <p id="matchStatus">Searching for opponents...</p>
+            <p style="font-size: 14px; color: #A0A8C0; margin-top: 16px;">Please wait</p>
+            <button id="cancelMatchBtn" class="btn btn-secondary" style="margin-top: 20px;">CANCEL</button>
+        </div>
+    </div>
+
+    <!-- Profile Screen -->
+    <div id="profileScreen" class="screen">
+        <!-- Animated Particle Background (Same as shop) -->
+        <div class="shop-particles">
+            <div class="particle"></div>
+            <div class="particle"></div>
+            <div class="particle"></div>
+            <div class="particle"></div>
+            <div class="particle"></div>
+            <div class="particle"></div>
+            <div class="particle"></div>
+            <div class="particle"></div>
+            <div class="particle white"></div>
+            <div class="particle white"></div>
+            <div class="particle white"></div>
+            <div class="particle white"></div>
+        </div>
+
+        <div class="menu-container">
+            <button id="backToMainFromProfile" class="btn btn-secondary">← BACK</button>
+
+            <div class="profile-content-wrapper">
+                <h2>PLAYER PROFILE</h2>
+                <div class="profile-header">
+                    <div class="profile-avatar">👤</div>
+                    <div class="profile-info">
+                        <h3 id="playerName">Player</h3>
+                        <div style="margin-top:8px;">
+                            <input id="playerNameInput" type="text" placeholder="Enter name"
+                                style="padding:6px 8px; border-radius:6px; border:1px solid #333; background: rgba(0,0,0,0.5); color: white;">
+                            <button id="savePlayerNameBtn" class="btn btn-primary"
+                                style="margin-left:8px; padding: 6px 12px; font-size: 12px;">Save</button>
+                            <div style="margin-top:8px;">
+                                <label><input id="lockNameCheckbox" type="checkbox"> Lock name</label>
+                            </div>
+                            <div style="margin-top:8px; display: flex; align-items: center; gap: 10px;">
+                                <label class="btn btn-secondary btn-small"
+                                    style="cursor: pointer; display: inline-block; margin:0;">
+                                    Upload Avatar <input id="avatarUploadInput" type="file" accept="image/*"
+                                        style="display: none;">
+                                </label>
+                                <div id="avatarPreview"></div>
+                            </div>
+                        </div>
+                        <div class="profile-stats">
+                            <div class="stat">
+                                <span class="stat-label">Level:</span>
+                                <span id="playerLevel" class="stat-value">1</span>
+                            </div>
+                            <div class="stat">
+                                <span class="stat-label">XP:</span>
+                                <span id="playerXP" class="stat-value">0</span>
+                                <span class="stat-max">/ <span id="xpToNext">100</span></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="xp-bar-container">
+                    <div class="xp-bar-label">Progress to Next Level</div>
+                    <div class="xp-bar-bg">
+                        <div id="xpBar" class="xp-bar" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <div class="profile-section">
+                    <h3>Badges</h3>
+                    <div id="badgesContainer" class="badges-grid">
+                        <!-- Badges will be populated by JavaScript -->
+                    </div>
+                </div>
+
+                <div class="profile-section">
+                    <h3>Statistics</h3>
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-card-value" id="totalKills">0</div>
+                            <div class="stat-card-label">Total Kills</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-card-value" id="totalDeaths">0</div>
+                            <div class="stat-card-label">Total Deaths</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-card-value" id="matchesPlayed">0</div>
+                            <div class="stat-card-label">Matches Played</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-card-value" id="wins">0</div>
+                            <div class="stat-card-label">Wins</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Shop Screen -->
+    <div id="shopScreen" class="screen">
+        <!-- Animated Particle Background -->
+        <div class="shop-particles">
+            <div class="particle"></div>
+            <div class="particle"></div>
+            <div class="particle"></div>
+            <div class="particle"></div>
+            <div class="particle"></div>
+            <div class="particle"></div>
+            <div class="particle"></div>
+            <div class="particle"></div>
+            <div class="particle"></div>
+            <div class="particle"></div>
+            <div class="particle"></div>
+            <div class="particle"></div>
+            <div class="particle"></div>
+            <div class="particle"></div>
+            <div class="particle"></div>
+            <div class="particle"></div>
+            <div class="particle"></div>
+            <div class="particle"></div>
+            <div class="particle"></div>
+            <div class="particle black"></div>
+            <div class="particle black"></div>
+            <div class="particle black"></div>
+            <div class="particle black"></div>
+            <div class="particle black"></div>
+            <div class="particle black"></div>
+            <div class="particle black"></div>
+            <div class="particle black"></div>
+            <div class="particle black"></div>
+        </div>
+
+        <div class="menu-container shop-container">
+            <h2>CHARACTER SHOP</h2>
+            <div class="currency-display">
+                <div class="currency-item">
+                    <span class="currency-icon">💰</span>
+                    <span id="shopCoins">0</span>
+                </div>
+                <div class="currency-item premium">
+                    <span class="currency-icon">💎</span>
+                    <span id="shopDiamonds">0</span>
+                </div>
+                <button id="watchAdBtn" class="btn btn-secondary btn-small">📺 Watch Ad</button>
+            </div>
+
+            <div class="shop-tabs">
+                <button class="shop-tab active" data-tab="all">All</button>
+                <button class="shop-tab" data-tab="free">Free</button>
+                <button class="shop-tab" data-tab="premium">Premium</button>
+            </div>
+
+            <div id="shopCharactersContainer" class="shop-characters-grid">
+                <!-- Characters will be populated by JavaScript -->
+            </div>
+
+            <button id="backFromShopBtn" class="btn btn-secondary" style="margin-top: 20px;">← BACK</button>
+        </div>
+    </div>
+
+    <!-- Game Canvas -->
+    <canvas id="gameCanvas" tabindex="0"></canvas>
+
+    <!-- In-Game Profile Display -->
+    <div id="inGameProfile" class="in-game-profile">
+        <div class="profile-summary">
+            <div class="profile-image">👤</div>
+            <div class="profile-details">
+                <div class="xp-container">
+                    <div class="xp-bar-bg">
+                        <div id="inGameXpBar" class="xp-bar" style="width: 0%"></div>
+                    </div>
+                    <div class="xp-text">XP: <span id="inGameXpText">0</span>/<span id="inGameXpNext">100</span></div>
+                </div>
+                <div class="badge-display">
+                    <div class="badge-icon" id="currentBadge">🔰</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- In-Game HUD -->
+    <div id="gameHUD" class="hud">
+        <div class="hud-top-left">
+            <div class="health-container">
+                <div class="health-label">HP</div>
+                <div class="health-bar-bg">
+                    <div id="healthBar" class="health-bar" style="width: 100%"></div>
+                </div>
+                <div id="healthText" class="health-text">100/100</div>
+            </div>
+            <div class="weapon-info">
+                <div id="weaponName" class="weapon-name">PISTOL</div>
+                <div id="ammoCount" class="ammo-count">∞</div>
+            </div>
+        </div>
+        <div class="hud-top-right">
+            <div class="hud-item">
+                <div class="hud-label">Time</div>
+                <div class="hud-value" id="matchTimer">--:--</div>
+            </div>
+            <div class="hud-item">
+                <div class="hud-label">Kills</div>
+                <div class="hud-value" id="killCount">0</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Match Results Screen -->
+    <div id="resultsScreen" class="screen">
+        <div class="results-container">
+            <div id="resultTitle" class="result-title">VICTORY!</div>
+            <div class="result-stats">
+                <div class="stat-item">
+                    <span class="stat-label">Kills:</span>
+                    <span id="finalKills" class="stat-value">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Deaths:</span>
+                    <span id="finalDeaths" class="stat-value">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Accuracy:</span>
+                    <span id="finalAccuracy" class="stat-value">0%</span>
+                </div>
+                <div class="stat-item"
+                    style="background: rgba(255, 215, 0, 0.1); border-color: rgba(255, 215, 0, 0.3);">
+                    <span class="stat-label">Coins Earned:</span>
+                    <span id="coinsEarned" class="stat-value" style="color: #FFD700;">+0 💰</span>
+                </div>
+            </div>
+            <div class="result-buttons">
+                <button id="playAgainBtn" class="btn btn-primary">PLAY AGAIN</button>
+                <button id="mainMenuBtn" class="btn btn-secondary">MAIN MENU</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript Modules -->
+    <script type="module" src="js/main.js"></script>
+</body>
+
+</html>

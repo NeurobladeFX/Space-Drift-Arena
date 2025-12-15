@@ -39,10 +39,54 @@ export class Multiplayer {
         const roomId = `room_${Date.now().toString(36)}`;
         this.roomCode = roomId;
         this.players = [{ id: this.localId, name: this.localPlayerName || 'Host', isHost: true }];
-        // Inform server to create room
-        this.matchmaker.send({ type: 'HOST_ROOM', roomId: roomId, peerId: this.localId, meta: { name: this.localPlayerName, avatar: this.localAvatar || null } });
-        console.log('[Multiplayer] Hosting room via server:', roomId);
-        return roomId;
+        
+        // Create a promise to wait for HOST_ROOM_ACK
+        return new Promise((resolve, reject) => {
+            // Set up temporary handler for HOST_ROOM_ACK
+            const originalHandler = this.handleData;
+            let ackReceived = false;
+            
+            this.handleData = (data) => {
+                console.log(`[Multiplayer] Handling message in hostGame: ${data.type}`, data);
+                
+                if (data.type === 'HOST_ROOM_ACK') {
+                    console.log('[Multiplayer] Received HOST_ROOM_ACK, room created successfully');
+                    ackReceived = true;
+                    // Restore original handler
+                    this.handleData = originalHandler;
+                    // Call original handler for this message
+                    originalHandler.call(this, data);
+                    resolve(roomId);
+                    return;
+                }
+                
+                // Handle errors
+                if (data.type === 'ERROR') {
+                    console.log('[Multiplayer] Received ERROR during hostGame:', data.message);
+                    // Restore original handler
+                    this.handleData = originalHandler;
+                    reject(new Error(data.message || 'Failed to create room'));
+                    return;
+                }
+                
+                // Call original handler for other messages
+                originalHandler.call(this, data);
+            };
+            
+            // Inform server to create room
+            this.matchmaker.send({ type: 'HOST_ROOM', roomId: roomId, peerId: this.localId, meta: { name: this.localPlayerName, avatar: this.localAvatar || null } });
+            console.log('[Multiplayer] Hosting room via server:', roomId);
+            
+            // Set timeout
+            setTimeout(() => {
+                if (!ackReceived) {
+                    console.log('[Multiplayer] HOST_ROOM_ACK timeout');
+                    // Restore original handler
+                    this.handleData = originalHandler;
+                    reject(new Error('Timeout waiting for room creation confirmation'));
+                }
+            }, 10000); // 10 second timeout
+        });
     }
 
     // Join existing game
@@ -55,39 +99,59 @@ export class Multiplayer {
         if (!this.matchmaker || !this.matchmaker.ws) throw new Error('Matchmaker not connected');
         this.roomCode = roomCode;
 
-        const sendJoin = () => {
-            try {
-                console.log(`[Multiplayer] Sending JOIN_ROOM request for room: ${roomCode}`);
-                this.matchmaker.send({ type: 'JOIN_ROOM', roomId: roomCode, peerId: this.localId, meta: { name: this.localPlayerName, avatar: this.localAvatar || null } });
-            } catch (e) {
-                console.warn('[Multiplayer] Failed to send JOIN_ROOM, will retry if pending', e);
-            }
-        };
-
-        // initial attempt
-        sendJoin();
-
+        // Create a promise to handle the join process
         return new Promise((resolve, reject) => {
-            this._joinResolve = (ok) => {
-                console.log(`[Multiplayer] Join resolve called with: ${ok}`);
-                this._joinResolve = null;
-                this._joinReject = null;
-                if (this._joinRetryTimer1) { clearTimeout(this._joinRetryTimer1); this._joinRetryTimer1 = null; }
-                if (this._joinRetryTimer2) { clearTimeout(this._joinRetryTimer2); this._joinRetryTimer2 = null; }
-                if (ok) resolve(true); else reject(new Error('Join failed'));
+            let playerListReceived = false;
+            let errorReceived = false;
+            
+            // Store original handler
+            const originalHandler = this.handleData;
+            
+            // Override handler to capture PLAYER_LIST or ERROR
+            this.handleData = (data) => {
+                console.log(`[Multiplayer] Handling message in joinGame: ${data.type}`, data);
+                
+                if (data.type === 'PLAYER_LIST') {
+                    console.log('[Multiplayer] Received PLAYER_LIST in joinGame:', data.players);
+                    playerListReceived = true;
+                    // Restore original handler
+                    this.handleData = originalHandler;
+                    // Call original handler for this message
+                    originalHandler.call(this, data);
+                    resolve(true);
+                    return;
+                }
+                
+                if (data.type === 'ERROR') {
+                    console.log('[Multiplayer] Received ERROR in joinGame:', data.message);
+                    errorReceived = true;
+                    // Restore original handler
+                    this.handleData = originalHandler;
+                    // Call original handler for this message
+                    originalHandler.call(this, data);
+                    reject(new Error(data.message || 'Failed to join room'));
+                    return;
+                }
+                
+                // Call original handler for other messages
+                originalHandler.call(this, data);
             };
-            this._joinReject = (err) => {
-                console.log(`[Multiplayer] Join reject called with: ${err.message}`);
-                this._joinResolve = null;
-                this._joinReject = null;
-                if (this._joinRetryTimer1) { clearTimeout(this._joinRetryTimer1); this._joinRetryTimer1 = null; }
-                if (this._joinRetryTimer2) { clearTimeout(this._joinRetryTimer2); this._joinRetryTimer2 = null; }
-                reject(err instanceof Error ? err : new Error(String(err)));
+
+            const sendJoin = () => {
+                try {
+                    console.log(`[Multiplayer] Sending JOIN_ROOM request for room: ${roomCode}`);
+                    this.matchmaker.send({ type: 'JOIN_ROOM', roomId: roomCode, peerId: this.localId, meta: { name: this.localPlayerName, avatar: this.localAvatar || null } });
+                } catch (e) {
+                    console.warn('[Multiplayer] Failed to send JOIN_ROOM, will retry if pending', e);
+                }
             };
+
+            // initial attempt
+            sendJoin();
 
             // retry once after 2s if still pending
             this._joinRetryTimer1 = setTimeout(() => {
-                if (this._joinResolve) {
+                if (!playerListReceived && !errorReceived) {
                     console.log('[Multiplayer] No PLAYER_LIST yet, retrying JOIN_ROOM...');
                     sendJoin();
                 }
@@ -95,7 +159,7 @@ export class Multiplayer {
 
             // retry again after 5s if still pending
             this._joinRetryTimer2 = setTimeout(() => {
-                if (this._joinResolve) {
+                if (!playerListReceived && !errorReceived) {
                     console.log('[Multiplayer] Still pending, retrying JOIN_ROOM again...');
                     sendJoin();
                 }
@@ -103,13 +167,13 @@ export class Multiplayer {
 
             // overall timeout
             setTimeout(() => {
-                if (this._joinResolve || this._joinReject) {
+                if (!playerListReceived && !errorReceived) {
                     console.log('[Multiplayer] Join timeout reached, rejecting promise');
-                    this._joinResolve = null;
-                    this._joinReject = null;
+                    // Restore original handler
+                    this.handleData = originalHandler;
                     if (this._joinRetryTimer1) { clearTimeout(this._joinRetryTimer1); this._joinRetryTimer1 = null; }
                     if (this._joinRetryTimer2) { clearTimeout(this._joinRetryTimer2); this._joinRetryTimer2 = null; }
-                    reject(new Error('Join timeout'));
+                    reject(new Error('Join timeout - room may not exist or server is not responding'));
                 }
             }, 25000);
         });

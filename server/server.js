@@ -330,15 +330,24 @@ wss.on('connection', (ws) => {
             // data: { roomId, peerId, meta }
             if (!data.roomId || !data.peerId) break;
             const roomId = data.roomId;
+            const attemptJoin = () => {
+              const roomNow = rooms.get(roomId);
+              if (!roomNow) { send(ws, { type: 'ERROR', message: 'Room not found' }); return; }
+              // add participant
+              roomNow.add({ ws, peerId: data.peerId, meta: data.meta || {} });
+              // build players list
+              const players = [];
+              for (const p of roomNow) players.push({ id: p.peerId, name: p.meta && p.meta.name ? sanitizeName(p.meta.name) : 'Player', avatar: p.meta && p.meta.avatar ? p.meta.avatar : null });
+              // notify all in room
+              for (const p of roomNow) send(p.ws, { type: 'PLAYER_LIST', players });
+            };
             const room = rooms.get(roomId);
-            if (!room) { send(ws, { type: 'ERROR', message: 'Room not found' }); break; }
-            // add participant
-            room.add({ ws, peerId: data.peerId, meta: data.meta || {} });
-            // build players list
-            const players = [];
-            for (const p of room) players.push({ id: p.peerId, name: p.meta && p.meta.name ? sanitizeName(p.meta.name) : 'Player', avatar: p.meta && p.meta.avatar ? p.meta.avatar : null });
-            // notify all in room
-            for (const p of room) send(p.ws, { type: 'PLAYER_LIST', players });
+            if (!room) {
+              // Grace period: room may be created milliseconds later; retry once after 1.5s
+              setTimeout(() => attemptJoin(), 1500);
+            } else {
+              attemptJoin();
+            }
             break;
           }
 

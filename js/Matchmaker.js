@@ -1,6 +1,8 @@
 export class Matchmaker {
     constructor(serverUrl, multiplayer, ui) {
         // Handle both ws:// and wss:// protocols
+        // For production deployments, wss:// should be used (standard port 443)
+        // For local development, ws:// with explicit port is fine
         this.serverUrl = serverUrl || 'ws://localhost:3000';
         this.multiplayer = multiplayer;
         this.ui = ui;
@@ -15,29 +17,44 @@ export class Matchmaker {
 
     connect() {
         if (this.ws && (this.ws.readyState === WebSocket.OPEN || this.ws.readyState === WebSocket.CONNECTING)) return;
-        const ws = new WebSocket(this.serverUrl);
-        ws.onopen = () => {
-            console.log('[Matchmaker] connected to', this.serverUrl);
-            this.ws = ws;
-            this.backoff = 1000;
-            if (this.onConnected) this.onConnected();
-        };
-        ws.onmessage = (ev) => this.handleMessage(ev);
-        ws.onclose = (ev) => {
-            console.warn('[Matchmaker] disconnected', ev.code, ev.reason);
-            this.ws = null;
-            if (this.onDisconnected) this.onDisconnected(ev);
-            setTimeout(() => {
-                console.log('[Matchmaker] attempting reconnect');
-                this.connect();
-            }, this.backoff);
-            this.backoff = Math.min(16000, this.backoff * 2);
-        };
-        ws.onerror = (ev) => {
-            console.error('[Matchmaker] ws error', ev.message || ev);
-            // Close socket to trigger reconnect logic if still open
-            try { ws.close(); } catch (e) { }
-        };
+        
+        try {
+            const ws = new WebSocket(this.serverUrl);
+            console.log('[Matchmaker] Attempting to connect to', this.serverUrl);
+            
+            ws.onopen = () => {
+                console.log('[Matchmaker] Connected successfully to', this.serverUrl);
+                this.ws = ws;
+                this.backoff = 1000;
+                if (this.onConnected) this.onConnected();
+            };
+            
+            ws.onmessage = (ev) => this.handleMessage(ev);
+            
+            ws.onclose = (ev) => {
+                console.warn('[Matchmaker] Disconnected from', this.serverUrl, 'Code:', ev.code, 'Reason:', ev.reason);
+                this.ws = null;
+                if (this.onDisconnected) this.onDisconnected(ev);
+                
+                // Implement exponential backoff for reconnection
+                setTimeout(() => {
+                    console.log('[Matchmaker] Attempting to reconnect to', this.serverUrl);
+                    this.connect();
+                }, this.backoff);
+                
+                this.backoff = Math.min(16000, this.backoff * 2);
+            };
+            
+            ws.onerror = (ev) => {
+                console.error('[Matchmaker] WebSocket error for', this.serverUrl, ':', ev.message || ev);
+                // Close socket to trigger reconnect logic if still open
+                try { ws.close(); } catch (e) { 
+                    console.error('[Matchmaker] Error closing socket:', e);
+                }
+            };
+        } catch (error) {
+            console.error('[Matchmaker] Failed to create WebSocket connection to', this.serverUrl, ':', error);
+        }
     }
 
     handleMessage(ev) {

@@ -57,6 +57,7 @@ export class Multiplayer {
 
         const sendJoin = () => {
             try {
+                console.log(`[Multiplayer] Sending JOIN_ROOM request for room: ${roomCode}`);
                 this.matchmaker.send({ type: 'JOIN_ROOM', roomId: roomCode, peerId: this.localId, meta: { name: this.localPlayerName, avatar: this.localAvatar || null } });
             } catch (e) {
                 console.warn('[Multiplayer] Failed to send JOIN_ROOM, will retry if pending', e);
@@ -68,6 +69,7 @@ export class Multiplayer {
 
         return new Promise((resolve, reject) => {
             this._joinResolve = (ok) => {
+                console.log(`[Multiplayer] Join resolve called with: ${ok}`);
                 this._joinResolve = null;
                 this._joinReject = null;
                 if (this._joinRetryTimer1) { clearTimeout(this._joinRetryTimer1); this._joinRetryTimer1 = null; }
@@ -75,6 +77,7 @@ export class Multiplayer {
                 if (ok) resolve(true); else reject(new Error('Join failed'));
             };
             this._joinReject = (err) => {
+                console.log(`[Multiplayer] Join reject called with: ${err.message}`);
                 this._joinResolve = null;
                 this._joinReject = null;
                 if (this._joinRetryTimer1) { clearTimeout(this._joinRetryTimer1); this._joinRetryTimer1 = null; }
@@ -101,6 +104,7 @@ export class Multiplayer {
             // overall timeout
             setTimeout(() => {
                 if (this._joinResolve || this._joinReject) {
+                    console.log('[Multiplayer] Join timeout reached, rejecting promise');
                     this._joinResolve = null;
                     this._joinReject = null;
                     if (this._joinRetryTimer1) { clearTimeout(this._joinRetryTimer1); this._joinRetryTimer1 = null; }
@@ -113,6 +117,7 @@ export class Multiplayer {
 
     // Handle messages coming from the matchmaker/relay server (Render)
     handleData(data) {
+        console.log(`[Multiplayer] Received message: ${data.type}`, data);
         if (!data || !data.type) return;
 
         switch (data.type) {
@@ -123,6 +128,7 @@ export class Multiplayer {
             }
 
             case 'PLAYER_LIST': {
+                console.log('[Multiplayer] Received PLAYER_LIST:', data.players);
                 // Normalize player list and remove duplicates
                 const byId = new Map();
                 for (const p of (data.players || [])) {
@@ -132,7 +138,11 @@ export class Multiplayer {
                 this.players = Array.from(byId.values());
                 if (this.onPlayerUpdate) this.onPlayerUpdate(this.players);
                 // Resolve pending join promise if waiting
-                if (this._joinResolve) { this._joinResolve(true); this._joinResolve = null; }
+                if (this._joinResolve) { 
+                    console.log('[Multiplayer] Resolving join promise with PLAYER_LIST');
+                    this._joinResolve(true); 
+                    this._joinResolve = null; 
+                }
                 break;
             }
 
@@ -202,6 +212,7 @@ export class Multiplayer {
             }
 
             case 'ERROR': {
+                console.log('[Multiplayer] Received ERROR from server:', data.message);
                 // Relay error from server (e.g., room not found) to pending join
                 if (this._joinReject) {
                     this._joinReject(new Error(data.message || 'Server error'));

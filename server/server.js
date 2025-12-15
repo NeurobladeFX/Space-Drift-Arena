@@ -319,10 +319,12 @@ wss.on('connection', (ws) => {
             // data: { roomId, peerId, meta }
             if (!data.roomId || !data.peerId) break;
             const roomId = data.roomId;
+            console.log(`[SERVER] Creating room: ${roomId} for peer: ${data.peerId}`);
             rooms.set(roomId, new Set());
             rooms.get(roomId).add({ ws, peerId: data.peerId, meta: data.meta || {} });
             // send confirmation
             send(ws, { type: 'HOST_ROOM_ACK', roomId });
+            console.log(`[SERVER] Room ${roomId} created successfully`);
             break;
           }
 
@@ -330,22 +332,37 @@ wss.on('connection', (ws) => {
             // data: { roomId, peerId, meta }
             if (!data.roomId || !data.peerId) break;
             const roomId = data.roomId;
+            console.log(`[SERVER] Attempting to join room: ${roomId} for peer: ${data.peerId}`);
+            
             const attemptJoin = () => {
               const roomNow = rooms.get(roomId);
-              if (!roomNow) { send(ws, { type: 'ERROR', message: 'Room not found' }); return; }
+              console.log(`[SERVER] Room lookup for ${roomId}: ${roomNow ? 'FOUND' : 'NOT FOUND'}`);
+              if (!roomNow) { 
+                send(ws, { type: 'ERROR', message: 'Room not found' }); 
+                console.log(`[SERVER] Sent ROOM_NOT_FOUND error to peer: ${data.peerId}`);
+                return; 
+              }
               // add participant
               roomNow.add({ ws, peerId: data.peerId, meta: data.meta || {} });
+              console.log(`[SERVER] Added peer ${data.peerId} to room ${roomId}`);
               // build players list
               const players = [];
               for (const p of roomNow) players.push({ id: p.peerId, name: p.meta && p.meta.name ? sanitizeName(p.meta.name) : 'Player', avatar: p.meta && p.meta.avatar ? p.meta.avatar : null });
+              console.log(`[SERVER] Sending PLAYER_LIST to ${roomNow.size} players in room ${roomId}`);
               // notify all in room
-              for (const p of roomNow) send(p.ws, { type: 'PLAYER_LIST', players });
+              for (const p of roomNow) {
+                console.log(`[SERVER] Sending PLAYER_LIST to peer: ${p.peerId}`);
+                send(p.ws, { type: 'PLAYER_LIST', players });
+              }
             };
+            
             const room = rooms.get(roomId);
             if (!room) {
+              console.log(`[SERVER] Room ${roomId} not found immediately, scheduling retry in 1.5s`);
               // Grace period: room may be created milliseconds later; retry once after 1.5s
               setTimeout(() => attemptJoin(), 1500);
             } else {
+              console.log(`[SERVER] Room ${roomId} found immediately, joining now`);
               attemptJoin();
             }
             break;

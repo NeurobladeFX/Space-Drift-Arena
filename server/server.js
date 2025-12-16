@@ -6,14 +6,36 @@ const bodyParser = require('body-parser');
 const fs = require('fs');
 const path = require('path');
 
-const DATA_DIR = path.join(__dirname, 'data');
-if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
-const LEADERBOARD_FILE = path.join(DATA_DIR, 'leaderboard.json');
-const MATCHES_FILE = path.join(DATA_DIR, 'matches.json');
+// Configure CORS to allow all origins for itch.io deployment
+const corsOptions = {
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    // Allow localhost for development
+    if (origin.indexOf('localhost') !== -1 || origin.indexOf('127.0.0.1') !== -1) {
+      return callback(null, true);
+    }
+    
+    // Allow itch.io domains
+    if (origin.indexOf('itch.io') !== -1) {
+      return callback(null, true);
+    }
+    
+    // Allow render.com domains
+    if (origin.indexOf('render.com') !== -1) {
+      return callback(null, true);
+    }
+    
+    // Allow any other origin (fallback for production)
+    return callback(null, true);
+  },
+  credentials: true
+};
 
 const PORT = process.env.PORT || 3000;
 const app = express();
-app.use(cors());
+app.use(cors(corsOptions));
 // Limit JSON body size to avoid large payload abuse
 app.use(bodyParser.json({ limit: '16kb' }));
 

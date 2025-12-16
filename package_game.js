@@ -14,7 +14,7 @@ const essentialPaths = [
   'assets/sounds/',
   'assets/ui/',
   'assets/weapons/',
-  'server/server.js'
+  'server/'
 ];
 
 // Function to get all files in a directory recursively

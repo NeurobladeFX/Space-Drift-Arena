@@ -45,7 +45,13 @@ class Game {
         this.multiplayer.matchmaker = this.matchmaker;
 
         // Connect matchmaker socket early (needed for server-mediated rooms)
-        try { this.matchmaker.connect(); } catch (e) { console.warn('Matchmaker connect failed', e); }
+        try { 
+            console.log('[Main] Connecting to matchmaker at:', matchmakerUrl);
+            this.matchmaker.connect(); 
+        } catch (e) { 
+            console.warn('[Main] Matchmaker connect failed', e); 
+            this.ui.showJoinError('Failed to connect to matchmaker service. Please check your internet connection.');
+        }
 
         // Initialize Peer early so we can register with matchmaker
         this.multiplayer.init().then(id => {

@@ -553,7 +553,19 @@ export class UI {
     }
 
     showJoinError(message) {
-        document.getElementById('joinError').textContent = message;
+        const errorEl = document.getElementById('joinError');
+        if (errorEl) {
+            errorEl.textContent = message;
+            errorEl.style.display = 'block';
+            
+            // Auto-hide error after 5 seconds
+            setTimeout(() => {
+                errorEl.style.display = 'none';
+            }, 5000);
+        }
+        
+        // Also log to console for debugging
+        console.error('[UI] Join error displayed:', message);
     }
 
     copyRoomCode() {

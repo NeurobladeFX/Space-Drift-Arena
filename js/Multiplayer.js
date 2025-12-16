@@ -49,7 +49,7 @@ export class Multiplayer {
         
         if (!this.matchmaker || !this.matchmaker.ws) {
             console.log('[Multiplayer] Matchmaker not connected');
-            throw new Error('Matchmaker not connected');
+            throw new Error('Matchmaker not connected. Please check your internet connection and try again.');
         }
         
         this.isHost = true;
@@ -90,7 +90,7 @@ export class Multiplayer {
                     ackReceived = true;
                     // Restore original handler immediately
                     this.handleData = originalHandler;
-                    reject(new Error(data.message || 'Failed to create room'));
+                    reject(new Error(data.message || 'Failed to create room. Please try again.'));
                     return;
                 }
                 
@@ -119,9 +119,9 @@ export class Multiplayer {
                     console.log('[Multiplayer] HOST_ROOM_ACK timeout');
                     // Restore original handler
                     this.handleData = originalHandler;
-                    reject(new Error('Timeout waiting for room creation confirmation'));
+                    reject(new Error('Timeout waiting for room creation confirmation. The server may be busy or unreachable. Please try again.'));
                 }
-            }, 10000); // 10 second timeout
+            }, 15000); // 15 second timeout
         });
     }
     // Join existing game

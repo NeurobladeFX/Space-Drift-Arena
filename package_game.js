@@ -8,14 +8,29 @@ const essentialPaths = [
   'favicon.svg',
   'styles/',
   'js/',
-  'assets/backgrounds/',
-  'assets/characters/free/',
-  'assets/characters/premium/',
-  'assets/sounds/',
-  'assets/ui/',
-  'assets/weapons/',
-  'server/'
+  'assets/',
+  'server/server.js'
 ];
+
+// List of files to exclude (to reduce file count)
+const excludePatterns = [
+  /\.map$/,           // Source maps
+  /\.DS_Store$/,      // macOS metadata
+  /Thumbs\.db$/,      // Windows thumbnails
+  /\.git/,            // Git files
+  /\.zip/,            // ZIP files
+  /package-lock/,     // Package lock files
+  /README/,           // Documentation files
+  /DEPLOYMENT/,       // Deployment guides
+  /ITCH_IO/,          // Itch.io guides
+  /\.md$/,            // Markdown files
+  /\.bat$/            // Batch files
+];
+
+// Function to check if a file should be excluded
+function shouldExclude(filePath) {
+  return excludePatterns.some(pattern => pattern.test(filePath));
+}
 
 // Function to get all files in a directory recursively
 function getAllFiles(dirPath, arrayOfFiles) {
@@ -26,9 +41,15 @@ function getAllFiles(dirPath, arrayOfFiles) {
     files.forEach(function(file) {
       const fullPath = path.join(dirPath, file);
       if (fs.statSync(fullPath).isDirectory()) {
-        arrayOfFiles = getAllFiles(fullPath, arrayOfFiles);
+        // Don't recurse into excluded directories
+        if (!shouldExclude(fullPath)) {
+          arrayOfFiles = getAllFiles(fullPath, arrayOfFiles);
+        }
       } else {
-        arrayOfFiles.push(fullPath);
+        // Only add files that aren't excluded
+        if (!shouldExclude(fullPath)) {
+          arrayOfFiles.push(fullPath);
+        }
       }
     });
 
@@ -41,7 +62,7 @@ function getAllFiles(dirPath, arrayOfFiles) {
 
 // Main packaging function
 async function packageGame() {
-  const outputPath = path.join(__dirname, 'Space-Drift-Arena-itchio.zip');
+  const outputPath = path.join(__dirname, 'Space-Drift-Arena-itchio-clean.zip');
   const output = fs.createWriteStream(outputPath);
   const archive = archiver('zip', {
     zlib: { level: 9 } // Maximum compression

@@ -295,7 +295,7 @@ export class Multiplayer {
                             id: p.id || `${data.playerId}_${Date.now()}`,
                             x: p.x, y: p.y, vx: p.vx, vy: p.vy,
                             angle: p.angle || Math.atan2(p.vy || 0, p.vx || 1),
-                            owner: data.playerId,
+                            ownerId: p.ownerId || data.playerId, // Use the actual owner ID if available
                             weaponId: p.weaponId || p.weapon || null,
                             color: p.color || null
                         });

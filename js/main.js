@@ -343,7 +343,7 @@ class Game {
             }
         };
 
-        // Register multiplayer player death handler
+        // Register player death handler
         this.multiplayer.onPlayerDeath = (victimId, killerId) => {
             console.log(`[Main] Player death: ${victimId} killed by ${killerId}`);
             
@@ -359,6 +359,14 @@ class Game {
             if (this.remotePlayers[killerId]) {
                 this.remotePlayers[killerId].kills++;
                 console.log(`[Main] Remote player ${killerId} got a kill! Total kills: ${this.remotePlayers[killerId].kills}`);
+            }
+            
+            // If the local player died, update their death count
+            if (victimId === this.multiplayer.localId && this.player) {
+                this.player.deaths++;
+                console.log(`[Main] Local player died! Total deaths: ${this.player.deaths}`);
+                // Update HUD to reflect new death count
+                this.ui.updateHUD(this.player);
             }
         };
         // Start game loop

@@ -416,7 +416,9 @@ export class Multiplayer {
             weaponId: p.weaponId || p.weapon || null,
             damage: p.damage,
             radius: p.radius,
-            color: p.color
+            color: p.color,
+            // Include owner information
+            ownerId: p.owner ? p.owner.id : null
         }));
 
         const data = {

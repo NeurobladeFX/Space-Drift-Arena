@@ -294,131 +294,275 @@ const pendingMatches = new Map(); // hostId -> {hostWs, peers: [{peerId, ws}], t
 const MAX_PLAYERS = 6;
 const MIN_PLAYERS = 2;
 
-// Rooms for in-game relay: roomId -> Set of { ws, peerId, meta }
-const rooms = new Map();
+// Room management
+const rooms = new Map(); // roomId -> {hostId, players: [{id, ws, meta}], settings}
 
 function send(ws, obj) {
   try {
-    console.log(`[SERVER] Sending message to client:`, obj);
     ws.send(JSON.stringify(obj));
-    console.log(`[SERVER] Message sent successfully`);
-  } catch (e) { 
-    console.error(`[SERVER] Failed to send message:`, e);
+  } catch (e) { }
+}
+
+function broadcastToRoom(roomId, obj, excludePeerId = null) {
+  const room = rooms.get(roomId);
+  if (!room) return;
+  
+  for (const player of room.players) {
+    if (player.id === excludePeerId) continue;
+    if (player.ws && player.ws.readyState === WebSocket.OPEN) {
+      send(player.ws, obj);
+    }
   }
 }
 
 wss.on('connection', (ws) => {
-  console.log('[SERVER] New WebSocket connection established');
   ws.isAlive = true;
   ws.on('pong', () => ws.isAlive = true);
 
   ws.on('message', (msg) => {
-    console.log('[SERVER] Raw message received:', msg.toString());
     let data;
-    try { 
-      data = JSON.parse(msg); 
-      console.log('[SERVER] Parsed message:', data);
-    } catch (e) { 
-      console.error('[SERVER] Failed to parse message:', e);
-      return; 
-    }
+    try { data = JSON.parse(msg); } catch (e) { return; }
 
     // Use an async IIFE so we can await Redis checks
     (async () => {
-      console.log('[SERVER] Processing message type:', data.type);
       switch (data.type) {
-          // Room lifecycle and in-game relay messages
-          case 'HOST_ROOM': {
-            // data: { roomId, peerId, meta }
-            if (!data.roomId || !data.peerId) {
-              console.log(`[SERVER] HOST_ROOM missing required fields: roomId=${data.roomId}, peerId=${data.peerId}`);
-              break;
-            }
-            const roomId = data.roomId;
-            console.log(`[SERVER] Creating room: ${roomId} for peer: ${data.peerId}`);
-            rooms.set(roomId, new Set());
-            rooms.get(roomId).add({ ws, peerId: data.peerId, meta: data.meta || {} });
-            // send confirmation
-            console.log(`[SERVER] Sending HOST_ROOM_ACK to peer: ${data.peerId}`);
-            send(ws, { type: 'HOST_ROOM_ACK', roomId });
-            console.log(`[SERVER] Room ${roomId} created successfully and HOST_ROOM_ACK sent`);
-            break;
+        case 'HOST_ROOM': {
+          if (!data.roomId || !data.peerId) {
+            return send(ws, { type: 'ERROR', message: 'Missing roomId or peerId' });
           }
-
-          case 'JOIN_ROOM': {
-            // data: { roomId, peerId, meta }
-            if (!data.roomId || !data.peerId) break;
-            const roomId = data.roomId;
-            console.log(`[SERVER] Attempting to join room: ${roomId} for peer: ${data.peerId}`);
-            
-            const attemptJoin = () => {
-              const roomNow = rooms.get(roomId);
-              console.log(`[SERVER] Room lookup for ${roomId}: ${roomNow ? 'FOUND' : 'NOT FOUND'}`);
-              if (!roomNow) { 
-                send(ws, { type: 'ERROR', message: 'Room not found' }); 
-                console.log(`[SERVER] Sent ROOM_NOT_FOUND error to peer: ${data.peerId}`);
-                return; 
-              }
-              // add participant
-              roomNow.add({ ws, peerId: data.peerId, meta: data.meta || {} });
-              console.log(`[SERVER] Added peer ${data.peerId} to room ${roomId}`);
-              // build players list
-              const players = [];
-              for (const p of roomNow) players.push({ id: p.peerId, name: p.meta && p.meta.name ? sanitizeName(p.meta.name) : 'Player', avatar: p.meta && p.meta.avatar ? p.meta.avatar : null });
-              console.log(`[SERVER] Sending PLAYER_LIST to ${roomNow.size} players in room ${roomId}`);
-              // notify all in room
-              for (const p of roomNow) {
-                console.log(`[SERVER] Sending PLAYER_LIST to peer: ${p.peerId}`);
-                send(p.ws, { type: 'PLAYER_LIST', players });
-              }
-            };
-            
-            const room = rooms.get(roomId);
-            if (!room) {
-              console.log(`[SERVER] Room ${roomId} not found immediately, scheduling retry in 1.5s`);
-              // Grace period: room may be created milliseconds later; retry once after 1.5s
-              setTimeout(() => attemptJoin(), 1500);
-            } else {
-              console.log(`[SERVER] Room ${roomId} found immediately, joining now`);
-              attemptJoin();
-            }
-            break;
+          
+          // Check if room already exists
+          if (rooms.has(data.roomId)) {
+            return send(ws, { type: 'ERROR', message: 'Room already exists' });
           }
-
-          case 'LEAVE_ROOM': {
-            if (!data.roomId || !data.peerId) break;
-            const room = rooms.get(data.roomId);
-            if (!room) break;
-            // remove participant
-            for (const p of Array.from(room)) {
-              if (p.peerId === data.peerId) room.delete(p);
-            }
-            // notify remaining
-            const players = [];
-            for (const p of room) players.push({ id: p.peerId, name: p.meta && p.meta.name ? sanitizeName(p.meta.name) : 'Player', avatar: p.meta && p.meta.avatar ? p.meta.avatar : null });
-            for (const p of room) send(p.ws, { type: 'PLAYER_LIST', players });
-            if (room.size === 0) rooms.delete(data.roomId);
-            break;
+          
+          // Create room
+          const playerName = (data.meta && data.meta.name) ? sanitizeName(data.meta.name) : 'Player';
+          const playerAvatar = (data.meta && data.meta.avatar) ? data.meta.avatar : null;
+          
+          rooms.set(data.roomId, {
+            hostId: data.peerId,
+            players: [{
+              id: data.peerId,
+              name: playerName,
+              avatar: playerAvatar,
+              ws: ws,
+              meta: data.meta || {}
+            }],
+            settings: {}
+          });
+          
+          // Confirm room creation
+          send(ws, { type: 'HOST_ROOM_ACK', roomId: data.roomId });
+          console.log(`[Room] Room ${data.roomId} created by ${data.peerId}`);
+          break;
+        }
+        
+        case 'JOIN_ROOM': {
+          if (!data.roomId || !data.peerId) {
+            return send(ws, { type: 'ERROR', message: 'Missing roomId or peerId' });
           }
-
-          case 'GAME_STATE':
-          case 'PROJECTILES':
-          case 'START_GAME':
-          case 'DAMAGE':
-          case 'PLAYER_DEATH':
-          case 'SPAWN_PICKUP':
-          case 'MATCH_TIMER': {
-            // relay to other participants in same room
-            if (!data.roomId) break;
-            const room = rooms.get(data.roomId);
-            if (!room) break;
-            for (const p of room) {
-              // If playerId is provided, skip echo back to the sender
-              if (data.playerId && p.peerId === data.playerId) continue;
-              send(p.ws, data);
-            }
-            break;
+          
+          const room = rooms.get(data.roomId);
+          if (!room) {
+            return send(ws, { type: 'ERROR', message: 'Room not found' });
           }
+          
+          // Check if player already in room
+          if (room.players.find(p => p.id === data.peerId)) {
+            return send(ws, { type: 'ERROR', message: 'Already in room' });
+          }
+          
+          // Add player to room
+          const playerName = (data.meta && data.meta.name) ? sanitizeName(data.meta.name) : 'Player';
+          const playerAvatar = (data.meta && data.meta.avatar) ? data.meta.avatar : null;
+          
+          room.players.push({
+            id: data.peerId,
+            name: playerName,
+            avatar: playerAvatar,
+            ws: ws,
+            meta: data.meta || {}
+          });
+          
+          // Send player list to joining player
+          const playerList = room.players.map(p => ({
+            id: p.id,
+            name: p.name,
+            avatar: p.avatar,
+            meta: p.meta
+          }));
+          
+          send(ws, { type: 'PLAYER_LIST', players: playerList });
+          
+          // Notify others in room about new player
+          broadcastToRoom(data.roomId, {
+            type: 'PLAYER_JOINED',
+            player: {
+              id: data.peerId,
+              name: playerName,
+              avatar: playerAvatar,
+              meta: data.meta || {}
+            }
+          }, data.peerId);
+          
+          console.log(`[Room] Player ${data.peerId} joined room ${data.roomId}`);
+          break;
+        }
+        
+        case 'LEAVE_ROOM': {
+          if (!data.roomId || !data.peerId) {
+            return;
+          }
+          
+          const room = rooms.get(data.roomId);
+          if (!room) return;
+          
+          // Remove player from room
+          const playerIndex = room.players.findIndex(p => p.id === data.peerId);
+          if (playerIndex === -1) return;
+          
+          const removedPlayer = room.players.splice(playerIndex, 1)[0];
+          
+          // If room is empty, delete it
+          if (room.players.length === 0) {
+            rooms.delete(data.roomId);
+            console.log(`[Room] Room ${data.roomId} deleted (empty)`);
+            return;
+          }
+          
+          // If host left, assign new host
+          if (room.hostId === data.peerId) {
+            room.hostId = room.players[0].id;
+            console.log(`[Room] New host assigned: ${room.hostId}`);
+          }
+          
+          // Notify others in room about player leaving
+          broadcastToRoom(data.roomId, {
+            type: 'PLAYER_LEFT',
+            playerId: data.peerId
+          });
+          
+          console.log(`[Room] Player ${data.peerId} left room ${data.roomId}`);
+          break;
+        }
+        
+        case 'START_GAME': {
+          if (!data.roomId) return;
+          
+          const room = rooms.get(data.roomId);
+          if (!room) return;
+          
+          // Only host can start game
+          if (room.hostId !== data.peerId) {
+            return send(ws, { type: 'ERROR', message: 'Only host can start game' });
+          }
+          
+          // Broadcast start game to all players
+          broadcastToRoom(data.roomId, {
+            type: 'START_GAME',
+            settings: data.settings || {}
+          });
+          
+          console.log(`[Room] Game started in room ${data.roomId}`);
+          break;
+        }
+        
+        case 'GAME_STATE': {
+          if (!data.roomId || !data.playerId) return;
+          
+          const room = rooms.get(data.roomId);
+          if (!room) return;
+          
+          // Broadcast game state to all other players
+          broadcastToRoom(data.roomId, {
+            type: 'GAME_STATE',
+            playerId: data.playerId,
+            player: data.player
+          }, data.playerId);
+          break;
+        }
+        
+        case 'PROJECTILES': {
+          if (!data.roomId || !data.playerId) return;
+          
+          const room = rooms.get(data.roomId);
+          if (!room) return;
+          
+          // Broadcast projectiles to all other players
+          broadcastToRoom(data.roomId, {
+            type: 'PROJECTILES',
+            playerId: data.playerId,
+            projectiles: data.projectiles
+          }, data.playerId);
+          break;
+        }
+        
+        case 'DAMAGE': {
+          if (!data.roomId || !data.playerId || !data.targetId) return;
+          
+          const room = rooms.get(data.roomId);
+          if (!room) return;
+          
+          // Broadcast damage to target player
+          const targetPlayer = room.players.find(p => p.id === data.targetId);
+          if (targetPlayer && targetPlayer.ws && targetPlayer.ws.readyState === WebSocket.OPEN) {
+            send(targetPlayer.ws, {
+              type: 'DAMAGE',
+              attackerId: data.playerId,
+              damage: data.damage,
+              timestamp: data.timestamp
+            });
+          }
+          break;
+        }
+        
+        case 'PLAYER_DEATH': {
+          if (!data.roomId || !data.victimId) return;
+          
+          const room = rooms.get(data.roomId);
+          if (!room) return;
+          
+          // Broadcast death to all players
+          broadcastToRoom(data.roomId, {
+            type: 'PLAYER_DEATH',
+            victimId: data.victimId,
+            killerId: data.killerId
+          });
+          break;
+        }
+        
+        case 'SPAWN_PICKUP': {
+          if (!data.roomId) return;
+          
+          const room = rooms.get(data.roomId);
+          if (!room) return;
+          
+          // Broadcast pickup spawn to all players
+          broadcastToRoom(data.roomId, {
+            type: 'SPAWN_PICKUP',
+            pickup: data.pickup
+          });
+          break;
+        }
+        
+        case 'MATCH_TIMER': {
+          if (!data.roomId) return;
+          
+          const room = rooms.get(data.roomId);
+          if (!room) return;
+          
+          // Only host can send timer updates
+          if (room.hostId !== data.playerId) return;
+          
+          // Broadcast timer to all players
+          broadcastToRoom(data.roomId, {
+            type: 'MATCH_TIMER',
+            timeLeft: data.timeLeft
+          });
+          break;
+        }
+        
         case 'FIND_MATCH': {
           if (!data.peerId) return;
           // Rate limit FIND_MATCH per peerId (once every 3s)
@@ -522,7 +666,6 @@ wss.on('connection', (ws) => {
   });
 
   ws.on('close', () => {
-    console.log('[SERVER] WebSocket connection closed');
     // clean queue
     for (let i = 0; i < queue.length; i++) if (queue[i].ws === ws) queue.splice(i, 1);
     // remove from pending
@@ -536,10 +679,35 @@ wss.on('connection', (ws) => {
         break;
       }
     }
-  });
-  
-  ws.on('error', (error) => {
-    console.error('[SERVER] WebSocket error:', error);
+    
+    // Remove player from any rooms they might be in
+    for (let [roomId, room] of rooms.entries()) {
+      const playerIndex = room.players.findIndex(p => p.ws === ws);
+      if (playerIndex !== -1) {
+        const removedPlayer = room.players.splice(playerIndex, 1)[0];
+        
+        // If room is empty, delete it
+        if (room.players.length === 0) {
+          rooms.delete(roomId);
+          console.log(`[Room] Room ${roomId} deleted (player disconnect)`);
+          return;
+        }
+        
+        // If host left, assign new host
+        if (room.hostId === removedPlayer.id) {
+          room.hostId = room.players[0].id;
+          console.log(`[Room] New host assigned: ${room.hostId}`);
+        }
+        
+        // Notify others in room about player leaving
+        broadcastToRoom(roomId, {
+          type: 'PLAYER_LEFT',
+          playerId: removedPlayer.id
+        });
+        
+        console.log(`[Room] Player ${removedPlayer.id} disconnected from room ${roomId}`);
+      }
+    }
   });
 });
 

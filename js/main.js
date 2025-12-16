@@ -237,8 +237,13 @@ class Game {
 
         this.multiplayer.onProjectileFired = (projectileData) => {
             if (this.gameState === 'playing') {
+                // Skip projectiles fired by the local player (they're already in the local projectiles array)
+                if (projectileData.ownerId === this.multiplayer.localId) {
+                    return;
+                }
+                
                 // Create a Projectile instance for remote bullets
-                const ownerPlayer = this.remotePlayers[projectileData.owner] || null;
+                const ownerPlayer = this.remotePlayers[projectileData.ownerId] || null;
                 const weaponId = projectileData.weaponId || projectileData.weapon || 'pistol';
                 const angle = typeof projectileData.angle === 'number' ? projectileData.angle : Math.atan2(projectileData.vy || 0, projectileData.vx || 1);
                 const proj = new Projectile(projectileData.x, projectileData.y, angle, weaponId, ownerPlayer);
@@ -338,6 +343,24 @@ class Game {
             }
         };
 
+        // Register multiplayer player death handler
+        this.multiplayer.onPlayerDeath = (victimId, killerId) => {
+            console.log(`[Main] Player death: ${victimId} killed by ${killerId}`);
+            
+            // If the local player is the killer, increment their kill count
+            if (killerId === this.multiplayer.localId && this.player) {
+                this.player.kills++;
+                console.log(`[Main] Local player got a kill! Total kills: ${this.player.kills}`);
+                // Update HUD to reflect new kill count
+                this.ui.updateHUD(this.player);
+            }
+            
+            // If this is a remote player death, update their kill count
+            if (this.remotePlayers[killerId]) {
+                this.remotePlayers[killerId].kills++;
+                console.log(`[Main] Remote player ${killerId} got a kill! Total kills: ${this.remotePlayers[killerId].kills}`);
+            }
+        };
         // Start game loop
         this.gameLoop();
     }
@@ -464,7 +487,7 @@ class Game {
         if (this.gameMode === 'multiplayer' && this.multiplayer && this.multiplayer.players) {
             this.multiplayer.players.forEach(p => {
                 // IMPORTANT: Fix visibility - recreate player objects for everyone in the list
-                if (p.id !== this.multiplayer.peerId) {
+                if (p.id !== this.multiplayer.localId) {
                     this.remotePlayers[p.id] = new Player(p.x || 0, p.y || 0, false);
                     this.remotePlayers[p.id].isRemote = true; // Enable interpolation
                     const rp = this.remotePlayers[p.id];
@@ -488,7 +511,7 @@ class Game {
         // Create player
         const spawnPoint = SPAWN_POINTS[Math.floor(Math.random() * SPAWN_POINTS.length)];
         this.player = new Player(spawnPoint.x, spawnPoint.y, false);
-        this.player.id = 'local_player';
+        this.player.id = this.multiplayer.localId;
         // Assign profile name and avatar to local player
         const profile = this.shop.getProfile();
         this.player.name = profile.name || 'Player';
@@ -1381,7 +1404,7 @@ class Game {
 
                 // Leaderboard submission
                 const profile = this.shop.getProfile();
-                const playerId = this.multiplayer && this.multiplayer.peerId ? this.multiplayer.peerId : (this.player && this.player.id) || 'local_player';
+                const playerId = this.multiplayer && this.multiplayer.localId ? this.multiplayer.localId : (this.player && this.player.id) || 'local_player';
                 const playerName = profile.name || 'Player';
 
                 // compute score based on xp earned + coins

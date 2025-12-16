@@ -1,16 +1,23 @@
 {
-  "name": "space-drift-matchmaker",
+  "name": "space-drift-arena",
   "version": "1.0.0",
-  "description": "Lightweight matchmaking and leaderboard server for Space Drift Arena",
-  "main": "server.js",
+  "description": "A multiplayer space battle arena game",
+  "main": "index.html",
   "scripts": {
-    "start": "node server.js"
+    "package": "node package_game.js",
+    "start": "npx serve .",
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
+  "keywords": [
+    "game",
+    "multiplayer",
+    "space",
+    "arena",
+    "html5"
+  ],
+  "author": "NeurobladeFX",
+  "license": "MIT",
   "dependencies": {
-    "body-parser": "^1.20.2",
-    "cors": "^2.8.5",
-    "express": "^4.18.2",
-    "ioredis": "^5.3.2",
-    "ws": "^8.18.3"
+    "archiver": "^5.3.1"
   }
 }

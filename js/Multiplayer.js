@@ -326,6 +326,11 @@ export class Multiplayer {
                 }
                 break;
             }
+            
+            case 'PLAY_SOUND': {
+                if (this.onPlaySound) this.onPlaySound(data.sound, data.volume);
+                break;
+            }
 
             case 'ERROR': {
                 console.log('[Multiplayer] Received ERROR from server:', data.message);
@@ -521,6 +526,27 @@ export class Multiplayer {
         }
         if (!this.peer || !this.isHost) return;
         this.broadcast({ type: 'MATCH_TIMER', timeLeft: timeLeft });
+    }
+
+    // NEW: Send sound event to other players
+    sendSound(sound, volume = 0.5) {
+        if (this.useServer && this.matchmaker) {
+            this.matchmaker.send({ 
+                type: 'PLAY_SOUND', 
+                roomId: this.roomCode, 
+                playerId: this.useServer ? this.localId : this.peerId,
+                sound: sound,
+                volume: volume
+            });
+            return;
+        }
+        if (!this.peer) return;
+        this.broadcast({ 
+            type: 'PLAY_SOUND', 
+            playerId: this.peerId,
+            sound: sound,
+            volume: volume
+        });
     }
 
     // Helper method to wait for matchmaker connection

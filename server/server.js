@@ -563,6 +563,22 @@ wss.on('connection', (ws) => {
           break;
         }
         
+        case 'PLAY_SOUND': {
+          if (!data.roomId || !data.playerId) return;
+          
+          const room = rooms.get(data.roomId);
+          if (!room) return;
+          
+          // Broadcast sound event to all other players
+          broadcastToRoom(data.roomId, {
+            type: 'PLAY_SOUND',
+            playerId: data.playerId,
+            sound: data.sound,
+            volume: data.volume
+          }, data.playerId);
+          break;
+        }
+        
         case 'FIND_MATCH': {
           if (!data.peerId) return;
           // Rate limit FIND_MATCH per peerId (once every 3s)

@@ -256,11 +256,7 @@ class Game {
 
                 this.projectiles.push(proj);
 
-                // Play firing sound for remote player
-                // Use slightly lower volume for remote players
-                const soundName = weaponId === 'rocket_launcher' ? 'rocker' :
-                    weaponId === 'Laser' ? 'laser' : 'shoot';
-                this.soundManager.play(soundName, 0.2);
+                // Sound is now handled via PLAY_SOUND messages, so we don't play it locally here
             }
         };
 
@@ -336,9 +332,12 @@ class Game {
 
                 if (killed) {
                     console.log('💀 Killed by', data.attackerId);
-                    this.soundManager.play('die');
                     // Broadcast death so killer gets credit
                     this.multiplayer.sendPlayerDeath(data.attackerId);
+                    // Play death sound in multiplayer
+                    if (this.gameMode === 'multiplayer') {
+                        this.multiplayer.sendSound('die', 0.5);
+                    }
                 }
             }
         };
@@ -367,7 +366,15 @@ class Game {
                 console.log(`[Main] Local player died! Total deaths: ${this.player.deaths}`);
                 // Update HUD to reflect new death count
                 this.ui.updateHUD(this.player);
+                // Play death sound for local player
+                this.soundManager.play('die');
             }
+        };
+        
+        // Register sound playback handler
+        this.multiplayer.onPlaySound = (sound, volume) => {
+            // Play sound for remote events
+            this.soundManager.play(sound, volume);
         };
         // Start game loop
         this.gameLoop();
@@ -779,19 +786,27 @@ class Game {
                     this.projectiles.push(...newProjectiles);
 
                     // Play shoot sound based on weapon
+                    let soundName, soundVolume;
                     if (this.player.weapon === 'Laser' || this.player.weapon === 'plasma_canon') {
-                        this.soundManager.play('laser', 0.4);
+                        soundName = 'laser';
+                        soundVolume = 0.4;
                     } else if (this.player.weapon === 'rocket_launcher') {
-                        this.soundManager.play('rocker', 0.5);
+                        soundName = 'rocker';
+                        soundVolume = 0.5;
                     } else if (this.player.weapon === 'sniper') {
-                        this.soundManager.play('shoot', 0.6); // Louder shoot for sniper
+                        soundName = 'shoot';
+                        soundVolume = 0.6; // Louder shoot for sniper
                     } else {
-                        this.soundManager.play('shoot', 0.3);
+                        soundName = 'shoot';
+                        soundVolume = 0.3;
                     }
+                    
+                    this.soundManager.play(soundName, soundVolume);
 
-                    // Broadcast projectile creation in multiplayer
+                    // Broadcast projectile creation and sound in multiplayer
                     if (this.gameMode === 'multiplayer') {
                         this.multiplayer.sendProjectiles(newProjectiles);
+                        this.multiplayer.sendSound(soundName, soundVolume * 0.7); // Slightly quieter for remote players
                     }
                 }
             }

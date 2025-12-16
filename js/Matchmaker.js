@@ -144,7 +144,7 @@ export class Matchmaker {
         if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
             console.log('[Matchmaker] WebSocket not open (readyState: ' + (this.ws ? this.ws.readyState : 'null') + '), attempting to connect');
             this.connect();
-            setTimeout(() => this.send(obj), 200);
+            setTimeout(() => this.send(obj), 500); // Retry slightly later
             return;
         }
         try {

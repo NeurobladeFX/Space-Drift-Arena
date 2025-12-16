@@ -84,7 +84,7 @@ class Game {
                 this.ui.showHostLobby(roomCode);
             } catch (error) {
                 console.error('Failed to host game:', error);
-                alert('Failed to host game. Please try again.');
+                this.ui.showJoinError('Failed to host game: ' + error.message);
             }
         };
         this.ui.onJoinRoomClick = async (code) => {
@@ -334,7 +334,6 @@ class Game {
                 const attacker = this.remotePlayers[data.attackerId] || null;
                 const killed = this.player.takeDamage(data.damage, attacker);
 
-                // Play hit sound
                 // Play hit sound
                 // this.soundManager.play('hit');
 
@@ -839,12 +838,28 @@ class Game {
                 return false;
             }
 
-            // Check collision with players
+            // Check collision with players (LOCAL PLAYER)
             if (this.player && this.player.alive &&
                 projectile.owner !== this.player &&
                 checkCircleCollision(projectile, this.player)) {
-                this.player.takeDamage(projectile.damage, projectile.owner);
-                return false;
+                
+                // CRITICAL FIX: Double Damage Glitch
+                // In multiplayer, projectiles from remote players are simulated locally but should NOT cause local damage.
+                // We must wait for the authoritative 'DAMAGE' message from the shooter/server.
+                // If we apply damage here AND receive the message, the player takes 2x damage.
+                
+                const isRemoteBullet = this.gameMode === 'multiplayer' && projectile.owner && projectile.owner.isRemote;
+                
+                if (!isRemoteBullet) {
+                    // Only apply damage locally if it's a bot (single player) or weirdly self-inflicted (rare)
+                    this.player.takeDamage(projectile.damage, projectile.owner);
+                } else {
+                    // It's a remote bullet. We detected the hit visually, so we destroy the bullet (return false below),
+                    // but we do NOT subtract HP. The network message will handle the HP subtraction.
+                    console.log('Visual hit from remote bullet detected - ignoring local damage, waiting for network packet');
+                }
+                
+                return false; // Destroy bullet on impact
             }
 
             // Check collision with all bots
@@ -864,9 +879,13 @@ class Game {
                     if (remotePlayer && remotePlayer.alive &&
                         projectile.owner !== remotePlayer &&
                         checkCircleCollision(projectile, remotePlayer)) {
-                        // Send damage message to remote player
-                        this.multiplayer.sendDamage(peerId, projectile.damage);
-                        console.log('Hit remote player:', peerId, 'for', projectile.damage, 'damage');
+                        
+                        // We are the shooter (or simulating it). 
+                        // If we own the bullet, WE are the authority. Send the damage command.
+                        if (projectile.owner === this.player) {
+                            this.multiplayer.sendDamage(peerId, projectile.damage);
+                            console.log('Hit remote player:', peerId, 'for', projectile.damage, 'damage');
+                        }
                         return false;
                     }
                 }

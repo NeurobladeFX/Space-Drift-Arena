@@ -64,6 +64,7 @@ export class Multiplayer {
             // Set up temporary handler for HOST_ROOM_ACK
             const originalHandler = this.handleData;
             let ackReceived = false;
+            let retryInterval = null;
             
             // Create a wrapper function to ensure proper handling
             const tempHandler = (data) => {
@@ -72,6 +73,9 @@ export class Multiplayer {
                 if (data.type === 'HOST_ROOM_ACK') {
                     console.log('[Multiplayer] Received HOST_ROOM_ACK in tempHandler, room created successfully');
                     ackReceived = true;
+                    // Stop retrying
+                    if (retryInterval) clearInterval(retryInterval);
+                    
                     // Restore original handler immediately
                     this.handleData = originalHandler;
                     try {
@@ -88,6 +92,8 @@ export class Multiplayer {
                 if (data.type === 'ERROR') {
                     console.log('[Multiplayer] Received ERROR during hostGame:', data.message);
                     ackReceived = true;
+                    if (retryInterval) clearInterval(retryInterval);
+                    
                     // Restore original handler immediately
                     this.handleData = originalHandler;
                     reject(new Error(data.message || 'Failed to create room. Please try again.'));
@@ -105,23 +111,37 @@ export class Multiplayer {
             // Set the temporary handler
             this.handleData = tempHandler;
             
-            // Small delay to ensure handler is set before sending message
-            setTimeout(() => {
-                // Inform server to create room
-                console.log('[Multiplayer] Sending HOST_ROOM message to matchmaker');
-                this.matchmaker.send({ type: 'HOST_ROOM', roomId: roomId, peerId: this.localId, meta: { name: this.localPlayerName, avatar: this.localAvatar || null } });
-                console.log('[Multiplayer] Hosting room via server:', roomId);
-            }, 10);
+            const sendHostRequest = () => {
+                 if (ackReceived) return;
+                 console.log('[Multiplayer] Sending HOST_ROOM message to matchmaker...');
+                 try {
+                     this.matchmaker.send({ type: 'HOST_ROOM', roomId: roomId, peerId: this.localId, meta: { name: this.localPlayerName, avatar: this.localAvatar || null } });
+                 } catch (e) {
+                     console.warn('[Multiplayer] Failed to send HOST_ROOM, will retry.', e);
+                 }
+            };
+
+            // Send immediately
+            setTimeout(sendHostRequest, 10);
             
-            // Set timeout - increased for itch.io deployment
+            // RETRY MECHANISM: Retry every 3 seconds if no ACK received (handles packet loss/server wake up)
+            retryInterval = setInterval(() => {
+                if (!ackReceived) {
+                    console.log('[Multiplayer] Retrying HOST_ROOM request...');
+                    sendHostRequest();
+                }
+            }, 3000);
+            
+            // Set timeout - increased for itch.io deployment and Render cold starts
             setTimeout(() => {
                 if (!ackReceived) {
                     console.log('[Multiplayer] HOST_ROOM_ACK timeout');
+                    if (retryInterval) clearInterval(retryInterval);
                     // Restore original handler
                     this.handleData = originalHandler;
                     reject(new Error('Timeout waiting for room creation confirmation. The server may be busy or unreachable. Please try again.'));
                 }
-            }, 10000); // Increased timeout to 10 seconds for itch.io
+            }, 15000); // Increased timeout to 15 seconds
         });
     }
     // Join existing game

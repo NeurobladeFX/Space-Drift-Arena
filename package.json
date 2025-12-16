@@ -18,6 +18,7 @@
   "author": "NeurobladeFX",
   "license": "MIT",
   "dependencies": {
-    "archiver": "^5.3.1"
+    "archiver": "^5.3.1",
+    "yauzl": "^3.2.0"
   }
 }

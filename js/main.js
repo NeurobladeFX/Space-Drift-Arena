@@ -78,6 +78,8 @@ class Game {
         this.ui.onHostClick = async () => {
             try {
                 this.gameMode = 'multiplayer';
+                // Add small delay to account for iframe load timing issues on itch.io
+                await new Promise(resolve => setTimeout(resolve, 500));
                 const roomCode = await this.multiplayer.hostGame();
                 this.ui.showHostLobby(roomCode);
             } catch (error) {

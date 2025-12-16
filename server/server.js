@@ -374,7 +374,8 @@ wss.on('connection', (ws) => {
             settings: {}
           });
           
-          // Confirm room creation
+          // Confirm room creation - add logging for diagnosis
+          console.log(`[Room] HOST_ROOM_ACK sent to ${data.peerId} for room ${data.roomId}`);
           send(ws, { type: 'HOST_ROOM_ACK', roomId: data.roomId });
           console.log(`[Room] Room ${data.roomId} created by ${data.peerId}`);
           break;
@@ -749,14 +750,14 @@ wss.on('connection', (ws) => {
   });
 });
 
-// Ping to keep websockets alive
+// Ping to keep websockets alive - more frequent for itch.io
 setInterval(() => {
   wss.clients.forEach(ws => {
     if (!ws.isAlive) return ws.terminate();
     ws.isAlive = false;
     ws.ping();
   });
-}, 30000);
+}, 25000); // Reduced from 30s to 25s for better reliability on itch.io
 
 server.listen(PORT, () => {
   console.log(`Matchmaking + Leaderboard server running on port ${PORT}`);

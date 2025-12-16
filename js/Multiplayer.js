@@ -113,7 +113,7 @@ export class Multiplayer {
                 console.log('[Multiplayer] Hosting room via server:', roomId);
             }, 10);
             
-            // Set timeout
+            // Set timeout - increased for itch.io deployment
             setTimeout(() => {
                 if (!ackReceived) {
                     console.log('[Multiplayer] HOST_ROOM_ACK timeout');
@@ -121,7 +121,7 @@ export class Multiplayer {
                     this.handleData = originalHandler;
                     reject(new Error('Timeout waiting for room creation confirmation. The server may be busy or unreachable. Please try again.'));
                 }
-            }, 15000); // 15 second timeout
+            }, 10000); // Increased timeout to 10 seconds for itch.io
         });
     }
     // Join existing game

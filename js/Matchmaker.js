@@ -20,8 +20,9 @@ export class Matchmaker {
         if (this.ws && (this.ws.readyState === WebSocket.OPEN || this.ws.readyState === WebSocket.CONNECTING)) return;
         
         try {
+            console.log('[Matchmaker] Creating WebSocket connection to', this.serverUrl);
             const ws = new WebSocket(this.serverUrl);
-            console.log('[Matchmaker] Attempting to connect to', this.serverUrl);
+            console.log('[Matchmaker] WebSocket object created for', this.serverUrl);
             
             ws.onopen = () => {
                 console.log('[Matchmaker] Connected successfully to', this.serverUrl);
@@ -30,8 +31,11 @@ export class Matchmaker {
                 if (this.onConnected) this.onConnected();
             };
             
-            ws.onmessage = (ev) => this.handleMessage(ev);
-            
+            ws.onmessage = (ev) => {
+                // Log message receipt for debugging
+                console.log('[Matchmaker] Received message from server (length: ' + (ev.data ? ev.data.length : 0) + ' bytes)');
+                this.handleMessage(ev);
+            };            
             ws.onclose = (ev) => {
                 console.warn('[Matchmaker] Disconnected from', this.serverUrl, 'Code:', ev.code, 'Reason:', ev.reason);
                 this.ws = null;
@@ -48,6 +52,11 @@ export class Matchmaker {
             
             ws.onerror = (ev) => {
                 console.error('[Matchmaker] WebSocket error for', this.serverUrl, ':', ev.message || ev);
+                // Log additional details about the error
+                if (ev && ev.target && ev.target.readyState !== undefined) {
+                    const readyStateMap = ['CONNECTING', 'OPEN', 'CLOSING', 'CLOSED'];
+                    console.error('[Matchmaker] WebSocket readyState:', readyStateMap[ev.target.readyState]);
+                }
                 // Close socket to trigger reconnect logic if still open
                 try { ws.close(); } catch (e) { 
                     console.error('[Matchmaker] Error closing socket:', e);
@@ -56,6 +65,7 @@ export class Matchmaker {
             };
         } catch (error) {
             console.error('[Matchmaker] Failed to create WebSocket connection to', this.serverUrl, ':', error);
+            console.error('[Matchmaker] Error details:', error.stack || 'No stack trace');
             if (this.onError) this.onError(error);
         }
     }

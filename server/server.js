@@ -6,6 +6,13 @@ const bodyParser = require('body-parser');
 const fs = require('fs');
 const path = require('path');
 
+const DATA_DIR = path.join(__dirname, 'data');
+if (!fs.existsSync(DATA_DIR)) {
+  fs.mkdirSync(DATA_DIR);
+}
+const LEADERBOARD_FILE = path.join(DATA_DIR, 'leaderboard.json');
+const MATCHES_FILE = path.join(DATA_DIR, 'matches.json');
+
 // Configure CORS to allow all origins for itch.io deployment
 const corsOptions = {
   origin: function (origin, callback) {
@@ -761,4 +768,7 @@ setInterval(() => {
 
 server.listen(PORT, () => {
   console.log(`Matchmaking + Leaderboard server running on port ${PORT}`);
+  if (!redis) {
+    console.warn('[WARNING] Redis is not configured. Leaderboard and match history will be stored in local files, which is not recommended for production. Please set the REDIS_URL environment variable for a more robust setup.');
+  }
 });

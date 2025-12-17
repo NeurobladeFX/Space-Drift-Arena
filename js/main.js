@@ -351,30 +351,34 @@ class Game {
 
         // Register player death handler
         this.multiplayer.onPlayerDeath = (victimId, killerId) => {
-            console.log(`[Main] Player death: ${victimId} killed by ${killerId}`);
-            
+            console.log(`[Main] Player death event: Victim: ${victimId}, Killer: ${killerId}`);
+
             // If the local player is the killer, increment their kill count
-            if (killerId === this.multiplayer.localId && this.player) {
+            if (this.player && killerId === this.multiplayer.localId) {
                 this.player.kills++;
-                console.log(`[Main] Local player got a kill! Total kills: ${this.player.kills}`);
-                // Update HUD to reflect new kill count
                 this.ui.updateHUD(this.player);
+                console.log(`[Main] Local player got a kill! Total kills: ${this.player.kills}`);
             }
-            
-            // If this is a remote player death, update their kill count
-            if (this.remotePlayers[killerId]) {
+            // If a remote player is the killer, update their stats
+            else if (this.remotePlayers[killerId]) {
                 this.remotePlayers[killerId].kills++;
                 console.log(`[Main] Remote player ${killerId} got a kill! Total kills: ${this.remotePlayers[killerId].kills}`);
             }
-            
-            // If the local player died, update their death count
-            if (victimId === this.multiplayer.localId && this.player) {
+
+            // If the local player died, update their stats
+            if (this.player && victimId === this.multiplayer.localId) {
                 this.player.deaths++;
-                console.log(`[Main] Local player died! Total deaths: ${this.player.deaths}`);
-                // Update HUD to reflect new death count
                 this.ui.updateHUD(this.player);
-                // Play death sound for local player
                 this.soundManager.play('die');
+                console.log(`[Main] Local player died! Total deaths: ${this.player.deaths}`);
+            }
+            // If a bot died
+            else {
+                const deadBot = this.bots.find(b => b.id === victimId);
+                if (deadBot) {
+                    deadBot.deaths++;
+                    console.log(`[Main] Bot ${victimId} died.`);
+                }
             }
         };
         

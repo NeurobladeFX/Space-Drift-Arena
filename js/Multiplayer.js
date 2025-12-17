@@ -21,6 +21,7 @@ export class Multiplayer {
         this.onPlayerData = null;
         this.onProjectileFired = null;
         this.onWeaponPickupSpawn = null; // NEW: Callback for spawning pickups
+        this.onPlaySound = null;
 
         // Max players in a match
         this.maxPlayers = 6;
@@ -141,7 +142,7 @@ export class Multiplayer {
                     this.handleData = originalHandler;
                     reject(new Error('Timeout waiting for room creation confirmation. The server may be busy or unreachable. Please try again.'));
                 }
-            }, 15000); // Increased timeout to 15 seconds
+            }, 30000); // Increased timeout to 30 seconds for better reliability on itch.io
         });
     }
     // Join existing game
@@ -608,7 +609,7 @@ export class Multiplayer {
             };
             
             // Clean up listeners
-            const cleanup = () => {
+            let cleanup = () => {
                 if (this.matchmaker) {
                     this.matchmaker.onConnected = null;
                     this.matchmaker.onDisconnected = null;
@@ -623,7 +624,7 @@ export class Multiplayer {
             const timeout = setTimeout(() => {
                 cleanup();
                 reject(new Error('Matchmaker connection timeout'));
-            }, 5000); // 5 second timeout
+            }, 15000); // Increased from 5 to 15 seconds for better reliability on itch.io
             
             // Clean up timeout in cleanup function
             const originalCleanup = cleanup;

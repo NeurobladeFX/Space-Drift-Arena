@@ -3,7 +3,7 @@ export class Matchmaker {
         // Handle both ws:// and wss:// protocols
         // For production deployments, wss:// should be used (standard port 443)
         // For local development, ws:// with explicit port is fine
-        this.serverUrl = serverUrl || 'ws://localhost:3000';
+        this.serverUrl = serverUrl;
         this.multiplayer = multiplayer;
         this.ui = ui;
         this.ws = null;
@@ -64,21 +64,15 @@ export class Matchmaker {
         let msg;
         try { msg = JSON.parse(ev.data); } catch (e) { return; }
         // Reduce logging frequency - only log important messages
-        if (msg.type !== 'GAME_STATE' && msg.type !== 'MATCH_TIMER' && msg.type !== 'PLAYER_LIST' && msg.type !== 'PLAYER_JOINED' && msg.type !== 'PLAYER_LEFT') {
+        if (msg.type !== 'GAME_STATE' && msg.type !== 'MATCH_TIMER') {
             console.log('[Matchmaker] Received message from server:', msg);
         }
         // If this is a room/relay message, forward to multiplayer handler
-        const roomTypes = ['PLAYER_LIST','PLAYER_JOINED','PLAYER_LEFT','GAME_STATE','PROJECTILES','HOST_ROOM_ACK','ERROR','START_GAME','DAMAGE','PLAYER_DEATH','SPAWN_PICKUP','MATCH_TIMER'];
+        const roomTypes = ['PLAYER_LIST', 'PLAYER_JOINED', 'PLAYER_LEFT', 'GAME_STATE', 'PROJECTILES', 'HOST_ROOM_ACK', 'ERROR', 'START_GAME', 'DAMAGE', 'PLAYER_DEATH', 'SPAWN_PICKUP', 'MATCH_TIMER', 'PLAY_SOUND'];
         if (msg && msg.type && roomTypes.includes(msg.type)) {
-            // Reduce logging frequency - only log important message types
-            if (msg.type !== 'GAME_STATE' && msg.type !== 'MATCH_TIMER' && msg.type !== 'PLAYER_LIST' && msg.type !== 'PLAYER_JOINED' && msg.type !== 'PLAYER_LEFT') {
-                console.log('[Matchmaker] Forwarding room message to multiplayer handler:', msg.type);
-            }
+            console.log('[Matchmaker] Forwarding room message to multiplayer handler:', msg.type);
             if (this.multiplayer && this.multiplayer.handleData) {
-                // Reduce logging frequency - only log important message types
-                if (msg.type !== 'GAME_STATE' && msg.type !== 'MATCH_TIMER' && msg.type !== 'PLAYER_LIST' && msg.type !== 'PLAYER_JOINED' && msg.type !== 'PLAYER_LEFT') {
-                    console.log('[Matchmaker] Calling multiplayer.handleData with message:', msg.type);
-                }
+                console.log('[Matchmaker] Calling multiplayer.handleData with message:', msg.type);
                 this.multiplayer.handleData(msg);
                 return;
             } else {

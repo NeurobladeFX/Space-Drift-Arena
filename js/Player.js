@@ -259,9 +259,14 @@ export class Player {
 
     takeDamage(damage, attacker) {
         if (this.invulnerable || !this.alive) return false;
+        if (attacker === this) return false; // Prevent self-damage
 
         this.hp -= damage;
         this.regenTimer = 0; // Reset regeneration
+
+        if (attacker && !attacker.isBot && this.isBot) {
+            attacker.shotsHit++;
+        }
 
         if (this.hp <= 0) {
             this.die();

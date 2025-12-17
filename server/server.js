@@ -53,7 +53,9 @@ const wsRateByPeer = new Map(); // peerId -> { lastFindTs, lastHostReadyTs }
 // Redis client (optional). Use REDIS_URL env var if provided.
 let redis = null;
 const redisUrl = process.env.REDIS_URL;
-if (redisUrl) {
+
+// Only attempt Redis connection if REDIS_URL is explicitly set and not pointing to localhost
+if (redisUrl && !redisUrl.includes('127.0.0.1') && !redisUrl.includes('localhost')) {
   try {
     const IORedis = require('ioredis');
     redis = new IORedis(redisUrl);
@@ -64,7 +66,7 @@ if (redisUrl) {
     redis = null;
   }
 } else {
-  console.log('REDIS_URL not set, using in-memory rate limits');
+  console.log('REDIS_URL not set or points to localhost, using in-memory rate limits');
 }
 // Redis-backed helpers (with in-memory fallback)
 async function isRateLimitedIp(ip, maxRequests, windowMs) {
@@ -364,13 +366,16 @@ wss.on('connection', (ws) => {
       console.error('[Server] Failed to parse message:', e, 'Raw message:', msg.toString());
       return; 
     }
+    
+    // Log all incoming messages for debugging
+    console.log('[Server] Parsed message data:', JSON.stringify(data, null, 2));
 
     // Use an async IIFE so we can await Redis checks
     (async () => {
       switch (data.type) {
         case 'HOST_ROOM': {
-          console.log('[Server] Processing HOST_ROOM request:', data);
-          if (!data.roomId || !data.peerId) {
+          console.log('[Server] Processing HOST_ROOM case with data:', JSON.stringify(data, null, 2));
+          console.log('[Server] Processing HOST_ROOM request:', data);          if (!data.roomId || !data.peerId) {
             console.log('[Server] Missing roomId or peerId in HOST_ROOM request');
             return send(ws, { type: 'ERROR', message: 'Missing roomId or peerId' });
           }

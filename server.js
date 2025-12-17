@@ -23,15 +23,21 @@ const wsRateByPeer = new Map(); // peerId -> { lastFindTs, lastHostReadyTs }
 
 // Redis client (optional). Use REDIS_URL env var if provided.
 let redis = null;
-try {
-  const IORedis = require('ioredis');
-  const redisUrl = process.env.REDIS_URL || 'redis://127.0.0.1:6379';
-  redis = new IORedis(redisUrl);
-  redis.on('error', (e) => console.warn('Redis error:', e.message || e));
-  redis.on('connect', () => console.log('Connected to Redis'));
-} catch (e) {
-  console.log('ioredis not available or failed to initialize, using in-memory rate limits');
-  redis = null;
+const redisUrl = process.env.REDIS_URL;
+
+// Only attempt Redis connection if REDIS_URL is explicitly set and not pointing to localhost
+if (redisUrl && !redisUrl.includes('127.0.0.1') && !redisUrl.includes('localhost')) {
+  try {
+    const IORedis = require('ioredis');
+    redis = new IORedis(redisUrl);
+    redis.on('error', (e) => console.warn('Redis error:', e.message || e));
+    redis.on('connect', () => console.log('Connected to Redis'));
+  } catch (e) {
+    console.log('ioredis not available or failed to initialize, using in-memory rate limits');
+    redis = null;
+  }
+} else {
+  console.log('REDIS_URL not set or points to localhost, using in-memory rate limits');
 }
 
 // Redis-backed helpers (with in-memory fallback)

@@ -378,6 +378,7 @@ export class Multiplayer {
         const data = {
             type: 'START_GAME',
             roomId: this.roomCode,
+            peerId: this.useServer ? this.localId : this.peerId,
             settings
         };
 
@@ -391,7 +392,6 @@ export class Multiplayer {
             this.onGameStart(settings);
         }
     }
-
     removePlayer(playerId) {
         this.players = this.players.filter(p => p.id !== playerId);
         this.connections = this.connections.filter(c => c.peer !== playerId);

@@ -1,4 +1,4 @@
-import { GAME_CONFIG, SPAWN_POINTS, WEAPONS, COLORS } from './config.js';
+﻿import { GAME_CONFIG, SPAWN_POINTS, WEAPONS, COLORS } from './config.js';
 import { Player } from './Player.js';
 import { BotAI } from './BotAI.js';
 import { Camera } from './Camera.js';
@@ -35,8 +35,7 @@ class Game {
         // Matchmaker (connects to server dynamically based on environment)
         const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
         // For local development, use ws://localhost:3000
-        // For production deployment on Render, use wss://space-drift-arena.onrender.com:10000
-        const matchmakerUrl = isLocal ? 'ws://localhost:3000' : 'wss://space-drift-arena.onrender.com:10000';
+        // For production deployment on Render, use wss://space-drift-arena.onrender.com (standard port 443)        const matchmakerUrl = isLocal ? 'ws://localhost:3000' : 'wss://space-drift-arena.onrender.com';
         // Ensure HTTPS submissions when running on itch.io or any HTTPS host
         this.serverBase = isLocal ? 'http://localhost:3000' : 'https://space-drift-arena.onrender.com';        
         // Diagnostic logging for deployment troubleshooting
@@ -77,7 +76,7 @@ class Game {
         };
 
         this.ui.onStartGame = (mode) => {
-            console.log(`🎮 Starting game in ${mode} mode`);
+            console.log(`ðŸŽ® Starting game in ${mode} mode`);
             this.gameMode = mode;
             this.initializeGame();
         };
@@ -349,7 +348,7 @@ class Game {
                 // this.soundManager.play('hit');
 
                 if (killed) {
-                    console.log('💀 Killed by', data.attackerId);
+                    console.log('ðŸ’€ Killed by', data.attackerId);
                     // Broadcast death so killer gets credit
                     this.multiplayer.sendPlayerDeath(data.attackerId);
                     // Play death sound in multiplayer
@@ -439,7 +438,7 @@ class Game {
             this.updateMainMenuProfile();
 
             // Show reward notification
-            this.showRewardNotification(`+${reward} 💰 Coins!`, '#FFD700');
+            this.showRewardNotification(`+${reward} ðŸ’° Coins!`, '#FFD700');
 
             btn.disabled = false;
             btn.style.opacity = '1';
@@ -458,7 +457,7 @@ class Game {
             this.updateMainMenuProfile();
 
             // Show reward notification
-            this.showRewardNotification(`+${reward} 💎 Diamonds!`, '#00D4FF');
+            this.showRewardNotification(`+${reward} ðŸ’Ž Diamonds!`, '#00D4FF');
 
             btn.disabled = false;
             btn.style.opacity = '1';
@@ -506,7 +505,7 @@ class Game {
     }
 
     initializeGame(settings = {}) {
-        console.log('🔄 Initializing game...');
+        console.log('ðŸ”„ Initializing game...');
 
         // Start background music
         this.soundManager.play('background', 0.3, true);
@@ -540,7 +539,7 @@ class Game {
 
         // Set game state to playing
         this.gameState = 'playing';
-        console.log('🎮 Game state set to playing');
+        console.log('ðŸŽ® Game state set to playing');
 
         // Hide all screens and show game
         this.ui.showGame();
@@ -553,13 +552,13 @@ class Game {
         const profile = this.shop.getProfile();
         this.player.name = profile.name || 'Player';
         if (profile.avatar) this.player.avatar = profile.avatar;
-        console.log(`👤 Created player at (${spawnPoint.x}, ${spawnPoint.y})`);
+        console.log(`ðŸ‘¤ Created player at (${spawnPoint.x}, ${spawnPoint.y})`);
 
         // Create bots only in single player mode
         this.bots = [];
         this.botAIs = []; // Initialize botAIs array
         if (this.gameMode === 'single') {
-            console.log('🤖 Creating bots for single player mode');
+            console.log('ðŸ¤– Creating bots for single player mode');
             for (let i = 1; i < 4; i++) {
                 const botSpawn = SPAWN_POINTS[(i) % SPAWN_POINTS.length];
                 const bot = new Player(botSpawn.x, botSpawn.y, true);
@@ -578,7 +577,7 @@ class Game {
                 // Create BotAI for each bot
                 this.botAIs.push(new BotAI(bot));
 
-                console.log(`🤖 Created bot ${i} at (${botSpawn.x}, ${botSpawn.y})`);
+                console.log(`ðŸ¤– Created bot ${i} at (${botSpawn.x}, ${botSpawn.y})`);
             }
         }
 
@@ -612,7 +611,7 @@ class Game {
             if (settings && settings.duration) {
                 this.matchTimeLeft = settings.duration;
                 this.matchTimerActive = true;
-                console.log('⏳ Multiplayer match timer set to:', this.matchTimeLeft);
+                console.log('â³ Multiplayer match timer set to:', this.matchTimeLeft);
             } else {
                 this.matchTimeLeft = 0;
                 this.matchTimerActive = false;
@@ -631,7 +630,7 @@ class Game {
 
         // Update in-game profile display
         this.updateInGameProfile();
-        console.log('✅ Game initialization complete');
+        console.log('âœ… Game initialization complete');
     }
 
     loadPlayerCharacter() {
@@ -654,7 +653,7 @@ class Game {
         const charData = this.shop.getCharacterData(charId);
 
         if (charData && charData.sprite) {
-            console.log(`🎭 Loading character sprite for ${playerObj.id}: ${charData.name}`);
+            console.log(`ðŸŽ­ Loading character sprite for ${playerObj.id}: ${charData.name}`);
             playerObj.sprite.src = charData.sprite;
             // Only local player needs full characterData for UI etc, but storing it on obj doesn't hurt
             playerObj.characterData = charData;
@@ -662,7 +661,7 @@ class Game {
             // Store aura data if premium character
             if (charData.aura) {
                 playerObj.aura = charData.aura;
-                console.log(`✨ Aura enabled for ${playerObj.id}`);
+                console.log(`âœ¨ Aura enabled for ${playerObj.id}`);
             } else {
                 playerObj.aura = null;
             }
@@ -681,7 +680,7 @@ class Game {
 
         // Log game loop for debugging
         if (this.gameState === 'playing') {
-            // console.log('🔄 Game loop running'); // Too frequent, commented out
+            // console.log('ðŸ”„ Game loop running'); // Too frequent, commented out
             this.update(this.deltaTime);
             this.render();
         }
@@ -1000,10 +999,10 @@ class Game {
 
         // Debug: Log canvas size
         if (!this._canvasSizeLogged) {
-            console.log('🔍 [Render Debug] Canvas size:', this.gameCanvas.width, 'x', this.gameCanvas.height);
-            console.log('🔍 [Render Debug] Canvas style display:', this.gameCanvas.style.display);
-            console.log('🔍 [Render Debug] Canvas computed visibility:', getComputedStyle(this.gameCanvas).visibility);
-            console.log('🔍 [Render Debug] Canvas offsetWidth/Height:', this.gameCanvas.offsetWidth, 'x', this.gameCanvas.offsetHeight);
+            console.log('ðŸ” [Render Debug] Canvas size:', this.gameCanvas.width, 'x', this.gameCanvas.height);
+            console.log('ðŸ” [Render Debug] Canvas style display:', this.gameCanvas.style.display);
+            console.log('ðŸ” [Render Debug] Canvas computed visibility:', getComputedStyle(this.gameCanvas).visibility);
+            console.log('ðŸ” [Render Debug] Canvas offsetWidth/Height:', this.gameCanvas.offsetWidth, 'x', this.gameCanvas.offsetHeight);
             this._canvasSizeLogged = true;
         }
 
@@ -1191,7 +1190,7 @@ class Game {
             });
         }
 
-        console.log(`✅ Spawned ${weaponType} weapon pickup at (${Math.floor(x)}, ${Math.floor(y)})`);
+        console.log(`âœ… Spawned ${weaponType} weapon pickup at (${Math.floor(x)}, ${Math.floor(y)})`);
     }
 
     switchToPreviousOrPistol() {
@@ -1252,14 +1251,14 @@ class Game {
         // Update badge (show highest unlocked badge)
         const badgeOrder = ['beginner', 'warrior', 'champion', 'legend', 'sharpshooter', 'survivor', 'collector', 'master'];
         const badgeIcons = {
-            beginner: '🔰',
-            warrior: '⚔️',
-            champion: '🏆',
-            legend: '👑',
-            sharpshooter: '🎯',
-            survivor: '🛡️',
-            collector: '💎',
-            master: '⭐'
+            beginner: 'ðŸ”°',
+            warrior: 'âš”ï¸',
+            champion: 'ðŸ†',
+            legend: 'ðŸ‘‘',
+            sharpshooter: 'ðŸŽ¯',
+            survivor: 'ðŸ›¡ï¸',
+            collector: 'ðŸ’Ž',
+            master: 'â­'
         };
 
         let currentBadge = 'beginner';
@@ -1289,14 +1288,14 @@ class Game {
         // Update badge (show highest unlocked badge)
         const badgeOrder = ['beginner', 'warrior', 'champion', 'legend', 'sharpshooter', 'survivor', 'collector', 'master'];
         const badgeIcons = {
-            beginner: '🔰',
-            warrior: '⚔️',
-            champion: '🏆',
-            legend: '👑',
-            sharpshooter: '🎯',
-            survivor: '🛡️',
-            collector: '💎',
-            master: '⭐'
+            beginner: 'ðŸ”°',
+            warrior: 'âš”ï¸',
+            champion: 'ðŸ†',
+            legend: 'ðŸ‘‘',
+            sharpshooter: 'ðŸŽ¯',
+            survivor: 'ðŸ›¡ï¸',
+            collector: 'ðŸ’Ž',
+            master: 'â­'
         };
 
         let currentBadge = 'beginner';
@@ -1343,14 +1342,14 @@ class Game {
 
         const badgeOrder = ['beginner', 'warrior', 'champion', 'legend', 'sharpshooter', 'survivor', 'collector', 'master'];
         const badgeIcons = {
-            beginner: '🔰',
-            warrior: '⚔️',
-            champion: '🏆',
-            legend: '👑',
-            sharpshooter: '🎯',
-            survivor: '🛡️',
-            collector: '💎',
-            master: '⭐'
+            beginner: 'ðŸ”°',
+            warrior: 'âš”ï¸',
+            champion: 'ðŸ†',
+            legend: 'ðŸ‘‘',
+            sharpshooter: 'ðŸŽ¯',
+            survivor: 'ðŸ›¡ï¸',
+            collector: 'ðŸ’Ž',
+            master: 'â­'
         };
 
         badgeOrder.forEach(badgeId => {
@@ -1407,7 +1406,7 @@ class Game {
         }
 
         const playerWon = winner === this.player;
-        console.log(`⏰ Time's up! Winner: ${winner.name || 'Bot'} with ${maxKills} kills`);
+        console.log(`â° Time's up! Winner: ${winner.name || 'Bot'} with ${maxKills} kills`);
 
         this.endGame(playerWon);
     }

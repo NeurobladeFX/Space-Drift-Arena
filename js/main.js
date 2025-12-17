@@ -39,8 +39,15 @@ class Game {
         const matchmakerUrl = isLocal ? 'ws://localhost:3000' : 'wss://space-drift-arena.onrender.com';
         // Ensure HTTPS submissions when running on itch.io or any HTTPS host
         this.serverBase = isLocal ? 'http://localhost:3000' : 'https://space-drift-arena.onrender.com';
-        this.matchmaker = new Matchmaker(matchmakerUrl, this.multiplayer, this.ui);
-        // Use server-mediated multiplayer rather than P2P when matchmaker is present
+        
+        // Diagnostic logging for deployment troubleshooting
+        console.log('[Main] Deployment diagnostics:');
+        console.log('[Main]  - window.location.hostname:', window.location.hostname);
+        console.log('[Main]  - isLocal:', isLocal);
+        console.log('[Main]  - matchmakerUrl:', matchmakerUrl);
+        console.log('[Main]  - serverBase:', this.serverBase);
+        
+        this.matchmaker = new Matchmaker(matchmakerUrl, this.multiplayer, this.ui);        // Use server-mediated multiplayer rather than P2P when matchmaker is present
         this.multiplayer.useServer = true;
         this.multiplayer.matchmaker = this.matchmaker;
 

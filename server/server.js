@@ -329,7 +329,9 @@ const rooms = new Map(); // roomId -> {hostId, players: [{id, ws, meta}], settin
 function send(ws, obj) {
   try {
     ws.send(JSON.stringify(obj));
-  } catch (e) { }
+  } catch (e) { 
+    console.error('[Server] Failed to send message:', e, 'Message:', obj);
+  }
 }
 
 function broadcastToRoom(roomId, obj, excludePeerId = null) {
@@ -345,23 +347,34 @@ function broadcastToRoom(roomId, obj, excludePeerId = null) {
 }
 
 wss.on('connection', (ws) => {
+  console.log('[Server] New WebSocket connection established');
   ws.isAlive = true;
-  ws.on('pong', () => ws.isAlive = true);
+  ws.on('pong', () => {
+    ws.isAlive = true;
+    console.log('[Server] Received pong from client');
+  });
 
   ws.on('message', (msg) => {
+    console.log('[Server] Received message from client:', msg.toString());
     let data;
-    try { data = JSON.parse(msg); } catch (e) { return; }
+    try { data = JSON.parse(msg); } catch (e) { 
+      console.error('[Server] Failed to parse message:', e, 'Raw message:', msg.toString());
+      return; 
+    }
 
     // Use an async IIFE so we can await Redis checks
     (async () => {
       switch (data.type) {
         case 'HOST_ROOM': {
+          console.log('[Server] Processing HOST_ROOM request:', data);
           if (!data.roomId || !data.peerId) {
+            console.log('[Server] Missing roomId or peerId in HOST_ROOM request');
             return send(ws, { type: 'ERROR', message: 'Missing roomId or peerId' });
           }
           
           // Check if room already exists
           if (rooms.has(data.roomId)) {
+            console.log('[Server] Room already exists:', data.roomId);
             return send(ws, { type: 'ERROR', message: 'Room already exists' });
           }
           
@@ -382,8 +395,13 @@ wss.on('connection', (ws) => {
           });
           
           // Confirm room creation - add logging for diagnosis
-          console.log(`[Room] HOST_ROOM_ACK sent to ${data.peerId} for room ${data.roomId}`);
-          send(ws, { type: 'HOST_ROOM_ACK', roomId: data.roomId });
+          console.log(`[Room] Preparing to send HOST_ROOM_ACK to ${data.peerId} for room ${data.roomId}`);
+          try {
+            ws.send(JSON.stringify({ type: 'HOST_ROOM_ACK', roomId: data.roomId }));
+            console.log(`[Room] HOST_ROOM_ACK message successfully sent to ${data.peerId}`);
+          } catch (error) {
+            console.error(`[Room] Failed to send HOST_ROOM_ACK to ${data.peerId}:`, error);
+          }
           console.log(`[Room] Room ${data.roomId} created by ${data.peerId}`);
           break;
         }

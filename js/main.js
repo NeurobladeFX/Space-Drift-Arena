@@ -230,6 +230,12 @@ class Game {
         // onPlayerData handler removed to prevent conflict with onGameStateUpdate + Interpolation
         this.multiplayer.onWeaponPickupSpawn = (pickupData) => {
             if (this.gameMode === 'multiplayer') {
+                // Safety check: ensure weaponPickups array exists
+                if (!this.weaponPickups) {
+                    console.warn('[Main] weaponPickups array not initialized yet, ignoring pickup spawn');
+                    return;
+                }
+                
                 // Check if pickup already exists (by ID or position overlap)
                 const exists = this.weaponPickups.some(p =>
                     Math.abs(p.x - pickupData.x) < 1 && Math.abs(p.y - pickupData.y) < 1
@@ -242,7 +248,6 @@ class Game {
                 }
             }
         };
-
         this.multiplayer.onProjectileFired = (projectileData) => {
             if (this.gameState === 'playing') {
                 // Skip projectiles fired by the local player (they're already in the local projectiles array)

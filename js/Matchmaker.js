@@ -100,8 +100,8 @@ export class Matchmaker {
                         if (this.inQueue) {
                             this.multiplayer.isRandomMatch = true;
                         }
-                        // Notify server we're ready
-                        this.send({ type: 'HOST_READY', peerId: this.peerId, roomId: this.multiplayer.getFullCode() });
+                        // Notify server we're ready - use roomId from MAKE_HOST message
+                        this.send({ type: 'HOST_READY', peerId: this.peerId, roomId: msg.roomId });
                     } catch (e) {
                         console.error('Failed to become host', e);
                     }

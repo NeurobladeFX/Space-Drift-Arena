@@ -300,10 +300,39 @@ const pendingMatches = new Map(); // hostId -> {hostWs, peers: [{peerId, ws}], t
 const MAX_PLAYERS = 6;
 const MIN_PLAYERS = 2;
 
+// Room management
+const rooms = new Map(); // roomId -> {hostId, players: [{id, ws, meta}], settings}
+
 function send(ws, obj) {
   try {
     ws.send(JSON.stringify(obj));
-  } catch (e) { }
+  } catch (e) { 
+    console.error('[Server] Failed to send message:', e, 'Message:', obj);
+  }
+}
+
+function broadcastToRoom(roomId, obj, excludePeerId = null) {
+  const room = rooms.get(roomId);
+  if (!room) return;
+  
+  for (const player of room.players) {
+    if (player.id === excludePeerId) continue;
+    if (player.ws && player.ws.readyState === WebSocket.OPEN) {
+      send(player.ws, obj);
+    }
+  }
+}
+
+function sanitizeName(name) {
+  if (!name || typeof name !== 'string') return null;
+  let s = name.trim();
+  // Remove control characters
+  s = s.replace(/[\x00-\x1F\x7F]/g, '');
+  // Allow letters, numbers, spaces and a few punctuation chars
+  s = s.replace(/[^\p{L}\p{N} _\-."']/gu, '');
+  if (s.length === 0) return null;
+  if (s.length > 24) s = s.substring(0, 24);
+  return s;
 }
 
 wss.on('connection', (ws) => {
@@ -325,11 +354,89 @@ wss.on('connection', (ws) => {
     // Handle HOST_ROOM message
     if (data.type === "HOST_ROOM") {
       console.log("HOST_ROOM received, sending ACK");
+      
+      // Check if room already exists
+      if (rooms.has(data.roomId)) {
+        console.log('[Server] Room already exists:', data.roomId);
+        return send(ws, { type: 'ERROR', message: 'Room already exists' });
+      }
+      
+      // Create room
+      const playerName = (data.meta && data.meta.name) ? sanitizeName(data.meta.name) : 'Player';
+      const playerAvatar = (data.meta && data.meta.avatar) ? data.meta.avatar : null;
+      
+      rooms.set(data.roomId, {
+        hostId: data.peerId,
+        players: [{
+          id: data.peerId,
+          name: playerName,
+          avatar: playerAvatar,
+          ws: ws,
+          meta: data.meta || {}
+        }],
+        settings: {}
+      });
 
       ws.send(JSON.stringify({
         type: "HOST_ROOM_ACK",
         roomId: data.roomId
       }));
+      console.log(`[Room] Room ${data.roomId} created by ${data.peerId}`);
+      return;
+    }
+    
+    // Handle JOIN_ROOM message
+    if (data.type === "JOIN_ROOM") {
+      console.log("JOIN_ROOM received, processing");
+      
+      if (!data.roomId || !data.peerId) {
+        return send(ws, { type: 'ERROR', message: 'Missing roomId or peerId' });
+      }
+      
+      const room = rooms.get(data.roomId);
+      if (!room) {
+        return send(ws, { type: 'ERROR', message: 'Room not found' });
+      }
+      
+      // Check if player already in room
+      if (room.players.find(p => p.id === data.peerId)) {
+        return send(ws, { type: 'ERROR', message: 'Already in room' });
+      }
+      
+      // Add player to room
+      const playerName = (data.meta && data.meta.name) ? sanitizeName(data.meta.name) : 'Player';
+      const playerAvatar = (data.meta && data.meta.avatar) ? data.meta.avatar : null;
+      
+      room.players.push({
+        id: data.peerId,
+        name: playerName,
+        avatar: playerAvatar,
+        ws: ws,
+        meta: data.meta || {}
+      });
+      
+      // Send player list to joining player
+      const playerList = room.players.map(p => ({
+        id: p.id,
+        name: p.name,
+        avatar: p.avatar,
+        meta: p.meta
+      }));
+      
+      send(ws, { type: 'PLAYER_LIST', players: playerList });
+      
+      // Notify others in room about new player
+      broadcastToRoom(data.roomId, {
+        type: 'PLAYER_JOINED',
+        player: {
+          id: data.peerId,
+          name: playerName,
+          avatar: playerAvatar,
+          meta: data.meta || {}
+        }
+      }, data.peerId);
+      
+      console.log(`[Room] Player ${data.peerId} joined room ${data.roomId}`);
       return;
     }
 

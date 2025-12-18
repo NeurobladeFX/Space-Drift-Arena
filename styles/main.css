@@ -1199,6 +1199,16 @@ body {
 .badge-icon {
     font-size: 24px;
     margin-bottom: 8px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.badge-icon .badge-image {
+    width: 48px;
+    height: 48px;
+    object-fit: contain;
+    filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.5));
 }
 
 .badge-name {
@@ -1603,6 +1613,16 @@ padding-top: 80px;
     font-size: 28px;
     filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.5));
     animation: pulse 2s infinite;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.badge-icon .badge-image {
+    width: 48px;
+    height: 48px;
+    object-fit: contain;
+    filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.5));
 }
 
 @keyframes pulse {

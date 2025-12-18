@@ -1260,14 +1260,14 @@ class Game {
         // Update badge (show highest unlocked badge)
         const badgeOrder = ['beginner', 'warrior', 'champion', 'legend', 'sharpshooter', 'survivor', 'collector', 'master'];
         const badgeIcons = {
-            beginner: 'ðŸ”°',
-            warrior: 'âš”ï¸',
-            champion: 'ðŸ†',
-            legend: 'ðŸ‘‘',
-            sharpshooter: 'ðŸŽ¯',
-            survivor: 'ðŸ›¡ï¸',
-            collector: 'ðŸ’Ž',
-            master: 'â­'
+            beginner: '<img src="assets/ui/beginner.PNG" alt="Beginner" class="badge-image">',
+            warrior: '<img src="assets/ui/Warrior.png" alt="Warrior" class="badge-image">',
+            champion: '<img src="assets/ui/Champion.png" alt="Champion" class="badge-image">',
+            legend: '<img src="assets/ui/Legend.png" alt="Legend" class="badge-image">',
+            sharpshooter: '<img src="assets/ui/sharpshooter.png" alt="Sharpshooter" class="badge-image">',
+            survivor: '<img src="assets/ui/Survivor.png" alt="Survivor" class="badge-image">',
+            collector: '<img src="assets/ui/Collector.png" alt="Collector" class="badge-image">',
+            master: '<img src="assets/ui/Master.png" alt="Master" class="badge-image">'
         };
 
         let currentBadge = 'beginner';
@@ -1278,7 +1278,7 @@ class Game {
             }
         }
 
-        document.getElementById('mainMenuBadge').textContent = badgeIcons[currentBadge];
+        document.getElementById('mainMenuBadge').innerHTML = badgeIcons[currentBadge];
     }
 
     updateInGameProfile() {
@@ -1297,14 +1297,14 @@ class Game {
         // Update badge (show highest unlocked badge)
         const badgeOrder = ['beginner', 'warrior', 'champion', 'legend', 'sharpshooter', 'survivor', 'collector', 'master'];
         const badgeIcons = {
-            beginner: 'ðŸ”°',
-            warrior: 'âš”ï¸',
-            champion: 'ðŸ†',
-            legend: 'ðŸ‘‘',
-            sharpshooter: 'ðŸŽ¯',
-            survivor: 'ðŸ›¡ï¸',
-            collector: 'ðŸ’Ž',
-            master: 'â­'
+            beginner: '<img src="assets/ui/beginner.PNG" alt="Beginner" class="badge-image">',
+            warrior: '<img src="assets/ui/Warrior.png" alt="Warrior" class="badge-image">',
+            champion: '<img src="assets/ui/Champion.png" alt="Champion" class="badge-image">',
+            legend: '<img src="assets/ui/Legend.png" alt="Legend" class="badge-image">',
+            sharpshooter: '<img src="assets/ui/sharpshooter.png" alt="Sharpshooter" class="badge-image">',
+            survivor: '<img src="assets/ui/Survivor.png" alt="Survivor" class="badge-image">',
+            collector: '<img src="assets/ui/Collector.png" alt="Collector" class="badge-image">',
+            master: '<img src="assets/ui/Master.png" alt="Master" class="badge-image">'
         };
 
         let currentBadge = 'beginner';
@@ -1315,7 +1315,7 @@ class Game {
             }
         }
 
-        document.getElementById('currentBadge').textContent = badgeIcons[currentBadge];
+        document.getElementById('currentBadge').innerHTML = badgeIcons[currentBadge];
     }
 
     updateProfileDisplay() {
@@ -1351,14 +1351,14 @@ class Game {
 
         const badgeOrder = ['beginner', 'warrior', 'champion', 'legend', 'sharpshooter', 'survivor', 'collector', 'master'];
         const badgeIcons = {
-            beginner: 'ðŸ”°',
-            warrior: 'âš”ï¸',
-            champion: 'ðŸ†',
-            legend: 'ðŸ‘‘',
-            sharpshooter: 'ðŸŽ¯',
-            survivor: 'ðŸ›¡ï¸',
-            collector: 'ðŸ’Ž',
-            master: 'â­'
+            beginner: '<img src="assets/ui/beginner.PNG" alt="Beginner" class="badge-image">',
+            warrior: '<img src="assets/ui/Warrior.png" alt="Warrior" class="badge-image">',
+            champion: '<img src="assets/ui/Champion.png" alt="Champion" class="badge-image">',
+            legend: '<img src="assets/ui/Legend.png" alt="Legend" class="badge-image">',
+            sharpshooter: '<img src="assets/ui/sharpshooter.png" alt="Sharpshooter" class="badge-image">',
+            survivor: '<img src="assets/ui/Survivor.png" alt="Survivor" class="badge-image">',
+            collector: '<img src="assets/ui/Collector.png" alt="Collector" class="badge-image">',
+            master: '<img src="assets/ui/Master.png" alt="Master" class="badge-image">'
         };
 
         badgeOrder.forEach(badgeId => {

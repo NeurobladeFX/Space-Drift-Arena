@@ -425,6 +425,13 @@ wss.on('connection', (ws) => {
       
       send(ws, { type: 'PLAYER_LIST', players: playerList });
       
+      // Send GAME_START message to joining player
+      send(ws, { 
+        type: 'GAME_START', 
+        yourId: data.peerId, 
+        players: playerList 
+      });
+      
       // Notify others in room about new player
       broadcastToRoom(data.roomId, {
         type: 'PLAYER_JOINED',
@@ -440,6 +447,114 @@ wss.on('connection', (ws) => {
       return;
     }
 
+    // Handle GAME_STATE message
+    if (data.type === "GAME_STATE") {
+      const room = rooms.get(data.roomId);
+      if (!room) return;
+
+      // forward state to EVERYONE except sender
+      room.players.forEach(p => {
+        if (p.ws !== ws) {
+          p.ws.send(JSON.stringify({
+            type: "GAME_STATE",
+            playerId: data.playerId,
+            player: data.player
+          }));
+        }
+      });
+      return;
+    }
+    
+    // Handle PROJECTILES message
+    if (data.type === "PROJECTILES") {
+      const room = rooms.get(data.roomId);
+      if (!room) return;
+      
+      // Broadcast projectiles to all other players
+      broadcastToRoom(data.roomId, {
+        type: 'PROJECTILES',
+        playerId: data.playerId,
+        projectiles: data.projectiles
+      }, data.playerId);
+      return;
+    }
+    
+    // Handle DAMAGE message
+    if (data.type === "DAMAGE") {
+      const room = rooms.get(data.roomId);
+      if (!room) return;
+      
+      // Broadcast damage to target player
+      const targetPlayer = room.players.find(p => p.id === data.targetId);
+      if (targetPlayer && targetPlayer.ws && targetPlayer.ws.readyState === WebSocket.OPEN) {
+        send(targetPlayer.ws, {
+          type: 'DAMAGE',
+          attackerId: data.playerId,
+          damage: data.damage,
+          timestamp: data.timestamp
+        });
+      }
+      return;
+    }
+    
+    // Handle PLAYER_DEATH message
+    if (data.type === "PLAYER_DEATH") {
+      const room = rooms.get(data.roomId);
+      if (!room) return;
+      
+      // Broadcast death to all players
+      broadcastToRoom(data.roomId, {
+        type: 'PLAYER_DEATH',
+        victimId: data.victimId,
+        killerId: data.killerId
+      });
+      return;
+    }
+    
+    // Handle SPAWN_PICKUP message
+    if (data.type === "SPAWN_PICKUP") {
+      const room = rooms.get(data.roomId);
+      if (!room) return;
+      
+      // Broadcast pickup spawn to all players
+      broadcastToRoom(data.roomId, {
+        type: 'SPAWN_PICKUP',
+        pickup: data.pickup
+      });
+      return;
+    }
+    
+    // Handle MATCH_TIMER message
+    if (data.type === "MATCH_TIMER") {
+      const room = rooms.get(data.roomId);
+      if (!room) return;
+      
+      // Only host can send timer updates
+      if (room.hostId !== data.playerId) return;
+      
+      // Broadcast timer to all players
+      broadcastToRoom(data.roomId, {
+        type: 'MATCH_TIMER',
+        timeLeft: data.timeLeft
+      });
+      return;
+    }
+    
+    // Handle PLAY_SOUND message
+    if (data.type === "PLAY_SOUND") {
+      const room = rooms.get(data.roomId);
+      if (!room) return;
+      
+      // Broadcast sound event to all other players
+      broadcastToRoom(data.roomId, {
+        type: 'PLAY_SOUND',
+        playerId: data.playerId,
+        sound: data.sound,
+        volume: data.volume
+      }, data.playerId);
+      return;
+    }
+    
     // Use an async IIFE so we can await Redis checks
     (async () => {
       switch (data.type) {

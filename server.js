@@ -306,7 +306,7 @@ const rooms = new Map(); // roomId -> {hostId, players: [{id, ws, meta}], settin
 function send(ws, obj) {
   try {
     ws.send(JSON.stringify(obj));
-  } catch (e) { 
+  } catch (e) {
     console.error('[Server] Failed to send message:', e, 'Message:', obj);
   }
 }
@@ -314,7 +314,7 @@ function send(ws, obj) {
 function broadcastToRoom(roomId, obj, excludePeerId = null) {
   const room = rooms.get(roomId);
   if (!room) return;
-  
+
   for (const player of room.players) {
     if (player.id === excludePeerId) continue;
     if (player.ws && player.ws.readyState === WebSocket.OPEN) {
@@ -342,11 +342,11 @@ wss.on('connection', (ws) => {
   ws.on('message', (msg) => {
     // RAW MESSAGE LOGGING FOR DEBUGGING
     console.log("RAW MESSAGE:", msg.toString());
-    
+
     let data;
-    try { data = JSON.parse(msg); } catch (e) { 
+    try { data = JSON.parse(msg); } catch (e) {
       console.log("Non-JSON message:", msg.toString());
-      return; 
+      return;
     }
 
     console.log("Parsed message:", data);
@@ -354,17 +354,17 @@ wss.on('connection', (ws) => {
     // Handle HOST_ROOM message
     if (data.type === "HOST_ROOM") {
       console.log("HOST_ROOM received, sending ACK");
-      
+
       // Check if room already exists
       if (rooms.has(data.roomId)) {
         console.log('[Server] Room already exists:', data.roomId);
         return send(ws, { type: 'ERROR', message: 'Room already exists' });
       }
-      
+
       // Create room
       const playerName = (data.meta && data.meta.name) ? sanitizeName(data.meta.name) : 'Player';
       const playerAvatar = (data.meta && data.meta.avatar) ? data.meta.avatar : null;
-      
+
       rooms.set(data.roomId, {
         hostId: data.peerId,
         players: [{
@@ -374,6 +374,7 @@ wss.on('connection', (ws) => {
           ws: ws,
           meta: data.meta || {}
         }],
+        status: 'LOBBY',
         settings: {}
       });
 
@@ -384,29 +385,29 @@ wss.on('connection', (ws) => {
       console.log(`[Room] Room ${data.roomId} created by ${data.peerId}`);
       return;
     }
-    
+
     // Handle JOIN_ROOM message
     if (data.type === "JOIN_ROOM") {
       console.log("JOIN_ROOM received, processing");
-      
+
       if (!data.roomId || !data.peerId) {
         return send(ws, { type: 'ERROR', message: 'Missing roomId or peerId' });
       }
-      
+
       const room = rooms.get(data.roomId);
       if (!room) {
         return send(ws, { type: 'ERROR', message: 'Room not found' });
       }
-      
+
       // Check if player already in room
       if (room.players.find(p => p.id === data.peerId)) {
         return send(ws, { type: 'ERROR', message: 'Already in room' });
       }
-      
+
       // Add player to room
       const playerName = (data.meta && data.meta.name) ? sanitizeName(data.meta.name) : 'Player';
       const playerAvatar = (data.meta && data.meta.avatar) ? data.meta.avatar : null;
-      
+
       room.players.push({
         id: data.peerId,
         name: playerName,
@@ -414,7 +415,7 @@ wss.on('connection', (ws) => {
         ws: ws,
         meta: data.meta || {}
       });
-      
+
       // Send player list to joining player
       const playerList = room.players.map(p => ({
         id: p.id,
@@ -422,16 +423,20 @@ wss.on('connection', (ws) => {
         avatar: p.avatar,
         meta: p.meta
       }));
-      
+
       send(ws, { type: 'PLAYER_LIST', players: playerList });
-      
-      // Send GAME_START message to joining player
-      send(ws, { 
-        type: 'GAME_START', 
-        yourId: data.peerId, 
-        players: playerList 
-      });
-      
+
+      // If game is already in progress, send START_GAME immediately
+      if (room.status === 'PLAYING') {
+        console.log(`[Room] Room ${data.roomId} is already playing, sending START_GAME to player ${data.peerId}`);
+        send(ws, {
+          type: 'START_GAME',
+          yourId: data.peerId,
+          players: playerList,
+          settings: room.settings || {}
+        });
+      }
+
       // Notify others in room about new player
       broadcastToRoom(data.roomId, {
         type: 'PLAYER_JOINED',
@@ -442,8 +447,31 @@ wss.on('connection', (ws) => {
           meta: data.meta || {}
         }
       }, data.peerId);
-      
+
       console.log(`[Room] Player ${data.peerId} joined room ${data.roomId}`);
+      return;
+    }
+
+    // Handle START_GAME message
+    if (data.type === "START_GAME") {
+      const room = rooms.get(data.roomId);
+      if (!room) return;
+
+      // Only host can start the game
+      if (room.hostId !== data.peerId) {
+        console.log(`[Room] Non-host ${data.peerId} tried to start room ${data.roomId}`);
+        return;
+      }
+
+      console.log(`[Room] Starting game in room ${data.roomId}`);
+      room.status = 'PLAYING';
+      room.settings = data.settings || {};
+
+      // Broadcast to all players in the room
+      broadcastToRoom(data.roomId, {
+        type: 'START_GAME',
+        settings: room.settings
+      });
       return;
     }
 
@@ -464,12 +492,12 @@ wss.on('connection', (ws) => {
       });
       return;
     }
-    
+
     // Handle PROJECTILES message
     if (data.type === "PROJECTILES") {
       const room = rooms.get(data.roomId);
       if (!room) return;
-      
+
       // Broadcast projectiles to all other players
       broadcastToRoom(data.roomId, {
         type: 'PROJECTILES',
@@ -478,12 +506,12 @@ wss.on('connection', (ws) => {
       }, data.playerId);
       return;
     }
-    
+
     // Handle DAMAGE message
     if (data.type === "DAMAGE") {
       const room = rooms.get(data.roomId);
       if (!room) return;
-      
+
       // Broadcast damage to target player
       const targetPlayer = room.players.find(p => p.id === data.targetId);
       if (targetPlayer && targetPlayer.ws && targetPlayer.ws.readyState === WebSocket.OPEN) {
@@ -496,12 +524,12 @@ wss.on('connection', (ws) => {
       }
       return;
     }
-    
+
     // Handle PLAYER_DEATH message
     if (data.type === "PLAYER_DEATH") {
       const room = rooms.get(data.roomId);
       if (!room) return;
-      
+
       // Broadcast death to all players
       broadcastToRoom(data.roomId, {
         type: 'PLAYER_DEATH',
@@ -510,12 +538,12 @@ wss.on('connection', (ws) => {
       });
       return;
     }
-    
+
     // Handle SPAWN_PICKUP message
     if (data.type === "SPAWN_PICKUP") {
       const room = rooms.get(data.roomId);
       if (!room) return;
-      
+
       // Broadcast pickup spawn to all players
       broadcastToRoom(data.roomId, {
         type: 'SPAWN_PICKUP',
@@ -523,15 +551,15 @@ wss.on('connection', (ws) => {
       });
       return;
     }
-    
+
     // Handle MATCH_TIMER message
     if (data.type === "MATCH_TIMER") {
       const room = rooms.get(data.roomId);
       if (!room) return;
-      
+
       // Only host can send timer updates
       if (room.hostId !== data.playerId) return;
-      
+
       // Broadcast timer to all players
       broadcastToRoom(data.roomId, {
         type: 'MATCH_TIMER',
@@ -539,12 +567,12 @@ wss.on('connection', (ws) => {
       });
       return;
     }
-    
+
     // Handle PLAY_SOUND message
     if (data.type === "PLAY_SOUND") {
       const room = rooms.get(data.roomId);
       if (!room) return;
-      
+
       // Broadcast sound event to all other players
       broadcastToRoom(data.roomId, {
         type: 'PLAY_SOUND',
@@ -554,7 +582,7 @@ wss.on('connection', (ws) => {
       }, data.playerId);
       return;
     }
-    
+
     // Use an async IIFE so we can await Redis checks
     (async () => {
       switch (data.type) {

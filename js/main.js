@@ -38,24 +38,24 @@ class Game {
         // For production deployment on Render, use wss://space-drift-arena.onrender.com (standard port 443)
         const matchmakerUrl = isLocal ? 'ws://localhost:3000' : 'wss://space-drift-arena.onrender.com';
         // Ensure HTTPS submissions when running on itch.io or any HTTPS host
-        this.serverBase = isLocal ? 'http://localhost:3000' : 'https://space-drift-arena.onrender.com';        
+        this.serverBase = isLocal ? 'http://localhost:3000' : 'https://space-drift-arena.onrender.com';
         // Diagnostic logging for deployment troubleshooting
         console.log('[Main] Deployment diagnostics:');
         console.log('[Main]  - window.location.hostname:', window.location.hostname);
         console.log('[Main]  - isLocal:', isLocal);
         console.log('[Main]  - matchmakerUrl:', matchmakerUrl);
         console.log('[Main]  - serverBase:', this.serverBase);
-        
+
         this.matchmaker = new Matchmaker(matchmakerUrl, this.multiplayer, this.ui);        // Use server-mediated multiplayer rather than P2P when matchmaker is present
         this.multiplayer.useServer = true;
         this.multiplayer.matchmaker = this.matchmaker;
 
         // Connect matchmaker socket early (needed for server-mediated rooms)
-        try { 
+        try {
             console.log('[Main] Connecting to matchmaker at:', matchmakerUrl);
-            this.matchmaker.connect(); 
-        } catch (e) { 
-            console.warn('[Main] Matchmaker connect failed', e); 
+            this.matchmaker.connect();
+        } catch (e) {
+            console.warn('[Main] Matchmaker connect failed', e);
             this.ui.showJoinError('Failed to connect to matchmaker service. Please check your internet connection.');
         }
 
@@ -98,6 +98,15 @@ class Game {
                 this.gameMode = 'multiplayer';
                 console.log(`[Main] Attempting to join room with code: ${code}`);
                 await this.multiplayer.joinGame(code);
+
+                // CRITICAL: Check if game already started before showing lobby
+                // This prevents the joiner from getting stuck on the lobby screen
+                // if they join a match that is already running.
+                if (this.gameState === 'playing') {
+                    console.log('[Main] Game already started/syncing, skipping lobby view');
+                    return;
+                }
+
                 // Show host lobby view as a waiting room for joined players (USING JOINED VIEW)
                 this.ui.showJoinedLobby(code);
                 // Ensure we populate the player list UI with current known players
@@ -107,7 +116,6 @@ class Game {
                 console.log(`[Main] Successfully joined room: ${code}`);
             } catch (err) {
                 console.error('Join failed', err);
-                // Show a more detailed error message to the user
                 const errorMessage = err.message || 'Failed to join room';
                 this.ui.showJoinError(`Connection Error: ${errorMessage}`);
             }
@@ -188,7 +196,7 @@ class Game {
                 this.remotePlayers[playerData.id] = new Player(spawnX, spawnY, false);
                 this.remotePlayers[playerData.id].isRemote = true; // Enable interpolation
             }
-            
+
             const remotePlayer = this.remotePlayers[playerData.id];
 
             // Set properties from received data
@@ -201,15 +209,15 @@ class Game {
             remotePlayer.weapon = playerData.weapon || remotePlayer.weapon || 'pistol';
             remotePlayer.ammo = typeof playerData.ammo === 'number' ? playerData.ammo : (remotePlayer.ammo || Infinity);
             remotePlayer.alive = playerData.alive !== undefined ? playerData.alive : (remotePlayer.alive !== undefined ? remotePlayer.alive : true);
-            
+
             // Set initial position if provided
             if (playerData.x !== undefined) remotePlayer.x = playerData.x;
             if (playerData.y !== undefined) remotePlayer.y = playerData.y;
-            
+
             // Set initial velocity if provided
             if (playerData.vx !== undefined) remotePlayer.vx = playerData.vx;
             if (playerData.vy !== undefined) remotePlayer.vy = playerData.vy;
-            
+
             // Set angle if provided
             if (playerData.angle !== undefined) remotePlayer.angle = playerData.angle;
             if (playerData.aimAngle !== undefined) remotePlayer.targetAngle = playerData.aimAngle;
@@ -241,7 +249,7 @@ class Game {
                     console.warn('[Main] weaponPickups array not initialized yet, ignoring pickup spawn');
                     return;
                 }
-                
+
                 // Check if pickup already exists (by ID or position overlap)
                 const exists = this.weaponPickups.some(p =>
                     Math.abs(p.x - pickupData.x) < 1 && Math.abs(p.y - pickupData.y) < 1
@@ -260,7 +268,7 @@ class Game {
                 if (projectileData.ownerId === this.multiplayer.localId) {
                     return;
                 }
-                
+
                 // Create a Projectile instance for remote bullets
                 const ownerPlayer = this.remotePlayers[projectileData.ownerId] || null;
                 const weaponId = projectileData.weaponId || projectileData.weapon || 'pistol';
@@ -392,7 +400,7 @@ class Game {
                 }
             }
         };
-        
+
         // Register sound playback handler
         this.multiplayer.onPlaySound = (sound, volume) => {
             // Play sound for remote events
@@ -822,7 +830,7 @@ class Game {
                         soundName = 'shoot';
                         soundVolume = 0.3;
                     }
-                    
+
                     this.soundManager.play(soundName, soundVolume);
 
                     // Broadcast projectile creation and sound in multiplayer
@@ -857,14 +865,14 @@ class Game {
             if (this.player && this.player.alive &&
                 projectile.owner !== this.player &&
                 checkCircleCollision(projectile, this.player)) {
-                
+
                 // CRITICAL FIX: Double Damage Glitch
                 // In multiplayer, projectiles from remote players are simulated locally but should NOT cause local damage.
                 // We must wait for the authoritative 'DAMAGE' message from the shooter/server.
                 // If we apply damage here AND receive the message, the player takes 2x damage.
-                
+
                 const isRemoteBullet = this.gameMode === 'multiplayer' && projectile.owner && projectile.owner.isRemote;
-                
+
                 if (!isRemoteBullet) {
                     // Only apply damage locally if it's a bot (single player) or weirdly self-inflicted (rare)
                     this.player.takeDamage(projectile.damage, projectile.owner);
@@ -873,7 +881,7 @@ class Game {
                     // but we do NOT subtract HP. The network message will handle the HP subtraction.
                     console.log('Visual hit from remote bullet detected - ignoring local damage, waiting for network packet');
                 }
-                
+
                 return false; // Destroy bullet on impact
             }
 
@@ -894,7 +902,7 @@ class Game {
                     if (remotePlayer && remotePlayer.alive &&
                         projectile.owner !== remotePlayer &&
                         checkCircleCollision(projectile, remotePlayer)) {
-                        
+
                         // We are the shooter (or simulating it). 
                         // If we own the bullet, WE are the authority. Send the damage command.
                         if (projectile.owner === this.player) {

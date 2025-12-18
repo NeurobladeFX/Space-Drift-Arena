@@ -3,7 +3,7 @@ export class Multiplayer {
         this.game = game;
         this.useServer = true; // Only server relay
         this.matchmaker = null;
-        this.localId = `p_${Date.now().toString(36)}_${Math.random().toString(36).slice(2,6)}`;
+        this.localId = `p_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
         this.peer = null;
         this.peerId = null;
         this.isHost = false;
@@ -36,7 +36,7 @@ export class Multiplayer {
     // Host a new game
     async hostGame() {
         console.log('[Multiplayer] hostGame called');
-        
+
         // Wait for matchmaker connection if not connected
         if (!this.matchmaker || !this.matchmaker.ws || this.matchmaker.ws.readyState !== WebSocket.OPEN) {
             console.log('[Multiplayer] Matchmaker not connected, attempting to connect...');
@@ -47,18 +47,18 @@ export class Multiplayer {
                 throw new Error('Failed to connect to matchmaker: ' + error.message);
             }
         }
-        
+
         if (!this.matchmaker || !this.matchmaker.ws) {
             console.log('[Multiplayer] Matchmaker not connected');
             throw new Error('Matchmaker not connected. Please check your internet connection and try again.');
         }
-        
+
         this.isHost = true;
         const roomId = `room_${Date.now().toString(36)}`;
         console.log('[Multiplayer] Generated room ID:', roomId);
         this.roomCode = roomId;
         this.players = [{ id: this.localId, name: this.localPlayerName || 'Host', isHost: true }];
-        
+
         // Create a promise to wait for HOST_ROOM_ACK
         return new Promise((resolve, reject) => {
             console.log('[Multiplayer] Creating promise to wait for HOST_ROOM_ACK');
@@ -66,17 +66,17 @@ export class Multiplayer {
             const originalHandler = this.handleData;
             let ackReceived = false;
             let retryInterval = null;
-            
+
             // Create a wrapper function to ensure proper handling
             const tempHandler = (data) => {
                 console.log(`[Multiplayer] Handling message in tempHandler: ${data.type}`, data);
-                
+
                 if (data.type === 'HOST_ROOM_ACK') {
                     console.log('[Multiplayer] Received HOST_ROOM_ACK in tempHandler, room created successfully');
                     ackReceived = true;
                     // Stop retrying
                     if (retryInterval) clearInterval(retryInterval);
-                    
+
                     // Restore original handler immediately
                     this.handleData = originalHandler;
                     try {
@@ -88,19 +88,19 @@ export class Multiplayer {
                     resolve(roomId);
                     return;
                 }
-                
+
                 // Handle errors
                 if (data.type === 'ERROR') {
                     console.log('[Multiplayer] Received ERROR during hostGame:', data.message);
                     ackReceived = true;
                     if (retryInterval) clearInterval(retryInterval);
-                    
+
                     // Restore original handler immediately
                     this.handleData = originalHandler;
                     reject(new Error(data.message || 'Failed to create room. Please try again.'));
                     return;
                 }
-                
+
                 // Call original handler for other messages
                 try {
                     originalHandler.call(this, data);
@@ -108,23 +108,23 @@ export class Multiplayer {
                     console.error('[Multiplayer] Error calling original handler for other message:', e);
                 }
             };
-            
+
             // Set the temporary handler
             this.handleData = tempHandler;
-            
+
             const sendHostRequest = () => {
-                 if (ackReceived) return;
-                 console.log('[Multiplayer] Sending HOST_ROOM message to matchmaker...');
-                 try {
-                     this.matchmaker.send({ type: 'HOST_ROOM', roomId: roomId, peerId: this.localId, meta: { name: this.localPlayerName, avatar: this.localAvatar || null } });
-                 } catch (e) {
-                     console.warn('[Multiplayer] Failed to send HOST_ROOM, will retry.', e);
-                 }
+                if (ackReceived) return;
+                console.log('[Multiplayer] Sending HOST_ROOM message to matchmaker...');
+                try {
+                    this.matchmaker.send({ type: 'HOST_ROOM', roomId: roomId, peerId: this.localId, meta: { name: this.localPlayerName, avatar: this.localAvatar || null } });
+                } catch (e) {
+                    console.warn('[Multiplayer] Failed to send HOST_ROOM, will retry.', e);
+                }
             };
 
             // Send immediately
             setTimeout(sendHostRequest, 10);
-            
+
             // RETRY MECHANISM: Retry every 3 seconds if no ACK received (handles packet loss/server wake up)
             retryInterval = setInterval(() => {
                 if (!ackReceived) {
@@ -132,7 +132,7 @@ export class Multiplayer {
                     sendHostRequest();
                 }
             }, 3000);
-            
+
             // Set timeout - increased for itch.io deployment and Render cold starts
             setTimeout(() => {
                 if (!ackReceived) {
@@ -152,7 +152,7 @@ export class Multiplayer {
         roomCode = (roomCode || '').trim();
         if (!roomCode) throw new Error('Please enter a room code');
         console.log(`[Multiplayer] Joining via server relay room ${roomCode}`);
-        
+
         // Wait for matchmaker connection if not connected
         if (!this.matchmaker || !this.matchmaker.ws || this.matchmaker.ws.readyState !== WebSocket.OPEN) {
             console.log('[Multiplayer] Matchmaker not connected, attempting to connect...');
@@ -163,7 +163,7 @@ export class Multiplayer {
                 throw new Error('Failed to connect to matchmaker: ' + error.message);
             }
         }
-        
+
         if (!this.matchmaker || !this.matchmaker.ws) throw new Error('Matchmaker not connected');
         this.roomCode = roomCode;
 
@@ -171,14 +171,14 @@ export class Multiplayer {
         return new Promise((resolve, reject) => {
             let playerListReceived = false;
             let errorReceived = false;
-            
+
             // Store original handler
             const originalHandler = this.handleData;
-            
+
             // Override handler to capture PLAYER_LIST or ERROR
             this.handleData = (data) => {
                 console.log(`[Multiplayer] Handling message in joinGame: ${data.type}`, data);
-                
+
                 if (data.type === 'PLAYER_LIST') {
                     console.log('[Multiplayer] Received PLAYER_LIST in joinGame:', data.players);
                     playerListReceived = true;
@@ -189,7 +189,7 @@ export class Multiplayer {
                     resolve(true);
                     return;
                 }
-                
+
                 if (data.type === 'ERROR') {
                     console.log('[Multiplayer] Received ERROR in joinGame:', data.message);
                     errorReceived = true;
@@ -200,7 +200,7 @@ export class Multiplayer {
                     reject(new Error(data.message || 'Failed to join room'));
                     return;
                 }
-                
+
                 // Call original handler for other messages
                 originalHandler.call(this, data);
             };
@@ -275,10 +275,10 @@ export class Multiplayer {
                 this.players = Array.from(byId.values());
                 if (this.onPlayerUpdate) this.onPlayerUpdate(this.players);
                 // Resolve pending join promise if waiting
-                if (this._joinResolve) { 
+                if (this._joinResolve) {
                     console.log('[Multiplayer] Resolving join promise with PLAYER_LIST');
-                    this._joinResolve(true); 
-                    this._joinResolve = null; 
+                    this._joinResolve(true);
+                    this._joinResolve = null;
                 }
                 break;
             }
@@ -298,20 +298,29 @@ export class Multiplayer {
             }
 
             case 'START_GAME': {
+                console.log('[Multiplayer] Processing START_GAME:', data);
+                // Handle optional player sync data (for late joiners)
+                if (data.yourId) {
+                    this.localId = data.yourId;
+                }
+                if (data.players) {
+                    this.players = data.players;
+                    if (this.onPlayerUpdate) this.onPlayerUpdate(this.players);
+                }
+
                 if (this.onGameStart) this.onGameStart(data.settings || {});
                 break;
             }
-            
+
             case 'GAME_START': {
-                // Server sends this to joining players to start the game
+                // Deprecated: server now sends START_GAME for consistency
+                console.log('[Multiplayer] Processing legacy GAME_START:', data);
                 if (data.yourId && data.players) {
-                    // Set up local player and remote players
                     this.localId = data.yourId;
                     this.players = data.players;
-                    
-                    // Trigger game start
-                    if (this.onGameStart) this.onGameStart({});
+                    if (this.onPlayerUpdate) this.onPlayerUpdate(this.players);
                 }
+                if (this.onGameStart) this.onGameStart({});
                 break;
             }
 
@@ -360,7 +369,7 @@ export class Multiplayer {
                 }
                 break;
             }
-            
+
             case 'PLAY_SOUND': {
                 if (this.onPlaySound) this.onPlaySound(data.sound, data.volume);
                 break;
@@ -514,7 +523,7 @@ export class Multiplayer {
 
     disconnect() {
         if (this.useServer && this.matchmaker && this.roomCode) {
-            try { this.matchmaker.send({ type: 'LEAVE_ROOM', roomId: this.roomCode, peerId: this.localId }); } catch (e) {}
+            try { this.matchmaker.send({ type: 'LEAVE_ROOM', roomId: this.roomCode, peerId: this.localId }); } catch (e) { }
             this.roomCode = null;
             this.players = [];
             this.connections = [];
@@ -565,9 +574,9 @@ export class Multiplayer {
     // NEW: Send sound event to other players
     sendSound(sound, volume = 0.5) {
         if (this.useServer && this.matchmaker) {
-            this.matchmaker.send({ 
-                type: 'PLAY_SOUND', 
-                roomId: this.roomCode, 
+            this.matchmaker.send({
+                type: 'PLAY_SOUND',
+                roomId: this.roomCode,
                 playerId: this.useServer ? this.localId : this.peerId,
                 sound: sound,
                 volume: volume
@@ -575,8 +584,8 @@ export class Multiplayer {
             return;
         }
         if (!this.peer) return;
-        this.broadcast({ 
-            type: 'PLAY_SOUND', 
+        this.broadcast({
+            type: 'PLAY_SOUND',
             playerId: this.peerId,
             sound: sound,
             volume: volume
@@ -590,37 +599,37 @@ export class Multiplayer {
                 reject(new Error('Matchmaker not initialized'));
                 return;
             }
-            
+
             // If already connected, resolve immediately
             if (this.matchmaker.ws && this.matchmaker.ws.readyState === WebSocket.OPEN) {
                 resolve();
                 return;
             }
-            
+
             // Try to connect if not already connecting
             if (!this.matchmaker.ws || this.matchmaker.ws.readyState !== WebSocket.CONNECTING) {
                 this.matchmaker.connect();
             }
-            
+
             // Set up connection listeners
             const onConnected = () => {
                 console.log('[Multiplayer] Matchmaker connected successfully');
                 cleanup();
                 resolve();
             };
-            
+
             const onDisconnected = () => {
                 console.log('[Multiplayer] Matchmaker disconnected during connection wait');
                 cleanup();
                 reject(new Error('Matchmaker disconnected'));
             };
-            
+
             const onError = (error) => {
                 console.log('[Multiplayer] Matchmaker connection error:', error);
                 cleanup();
                 reject(new Error('Matchmaker connection error: ' + error.message));
             };
-            
+
             // Clean up listeners
             let cleanup = () => {
                 if (this.matchmaker) {
@@ -628,17 +637,17 @@ export class Multiplayer {
                     this.matchmaker.onDisconnected = null;
                 }
             };
-            
+
             // Set up temporary listeners
             this.matchmaker.onConnected = onConnected;
             this.matchmaker.onDisconnected = onDisconnected;
-            
+
             // Set timeout
             const timeout = setTimeout(() => {
                 cleanup();
                 reject(new Error('Matchmaker connection timeout'));
             }, 15000); // Increased from 5 to 15 seconds for better reliability on itch.io
-            
+
             // Clean up timeout in cleanup function
             const originalCleanup = cleanup;
             cleanup = () => {

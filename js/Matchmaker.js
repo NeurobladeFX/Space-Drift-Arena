@@ -18,38 +18,38 @@ export class Matchmaker {
 
     connect() {
         if (this.ws && (this.ws.readyState === WebSocket.OPEN || this.ws.readyState === WebSocket.CONNECTING)) return;
-        
+
         try {
             console.log('[Matchmaker] Creating WebSocket connection to', this.serverUrl);
             const ws = new WebSocket(this.serverUrl);
             console.log('[Matchmaker] WebSocket object created for', this.serverUrl);
-            
+
             ws.onopen = () => {
                 console.log('[Matchmaker] Connected successfully to', this.serverUrl);
                 this.ws = ws;
                 this.backoff = 1000;
                 if (this.onConnected) this.onConnected();
             };
-            
+
             ws.onmessage = (ev) => {
                 // Log message receipt for debugging
                 console.log('[Matchmaker] Received message from server (length: ' + (ev.data ? ev.data.length : 0) + ' bytes)');
                 this.handleMessage(ev);
-            };            
+            };
             ws.onclose = (ev) => {
                 console.warn('[Matchmaker] Disconnected from', this.serverUrl, 'Code:', ev.code, 'Reason:', ev.reason);
                 this.ws = null;
                 if (this.onDisconnected) this.onDisconnected(ev);
-                
+
                 // Implement exponential backoff for reconnection
                 setTimeout(() => {
                     console.log('[Matchmaker] Attempting to reconnect to', this.serverUrl);
                     this.connect();
                 }, this.backoff);
-                
+
                 this.backoff = Math.min(16000, this.backoff * 2);
             };
-            
+
             ws.onerror = (ev) => {
                 console.error('[Matchmaker] WebSocket error for', this.serverUrl, ':', ev.message || ev);
                 // Log additional details about the error
@@ -58,7 +58,7 @@ export class Matchmaker {
                     console.error('[Matchmaker] WebSocket readyState:', readyStateMap[ev.target.readyState]);
                 }
                 // Close socket to trigger reconnect logic if still open
-                try { ws.close(); } catch (e) { 
+                try { ws.close(); } catch (e) {
                     console.error('[Matchmaker] Error closing socket:', e);
                 }
                 if (this.onError) this.onError(ev);
@@ -119,6 +119,11 @@ export class Matchmaker {
                 (async () => {
                     try {
                         await this.multiplayer.joinGame(msg.hostId);
+                        // CRITICAL: Check if game already started before showing lobby
+                        if (this.multiplayer.game && this.multiplayer.game.gameState === 'playing') {
+                            console.log('[Matchmaker] Game already started, skipping lobby view');
+                            return;
+                        }
                         this.ui.showHostLobby(msg.hostId);
                     } catch (e) {
                         console.error('Failed to join host from matchmaker', e);

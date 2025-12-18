@@ -311,8 +311,27 @@ wss.on('connection', (ws) => {
   ws.on('pong', () => ws.isAlive = true);
 
   ws.on('message', (msg) => {
+    // RAW MESSAGE LOGGING FOR DEBUGGING
+    console.log("RAW MESSAGE:", msg.toString());
+    
     let data;
-    try { data = JSON.parse(msg); } catch (e) { return; }
+    try { data = JSON.parse(msg); } catch (e) { 
+      console.log("Non-JSON message:", msg.toString());
+      return; 
+    }
+
+    console.log("Parsed message:", data);
+
+    // Handle HOST_ROOM message
+    if (data.type === "HOST_ROOM") {
+      console.log("HOST_ROOM received, sending ACK");
+
+      ws.send(JSON.stringify({
+        type: "HOST_ROOM_ACK",
+        roomId: data.roomId
+      }));
+      return;
+    }
 
     // Use an async IIFE so we can await Redis checks
     (async () => {

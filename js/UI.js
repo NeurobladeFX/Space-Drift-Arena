@@ -327,7 +327,7 @@ export class UI {
         }
     }
 
-    showResults(playerWon, player, coinsEarned = 0) {
+    showResults(playerWon, player, coinsEarned = 0, allPlayers = []) {
         this.hideAll();
         this.resultsScreen.classList.add('active');
 
@@ -343,6 +343,48 @@ export class UI {
         const coinsDisplay = document.getElementById('coinsEarned');
         if (coinsDisplay) {
             coinsDisplay.textContent = `+${coinsEarned} 💰`;
+        }
+
+        // Show leaderboard for multiplayer matches
+        if (allPlayers && allPlayers.length > 1) {
+            const leaderboardContainer = document.getElementById('leaderboardContainer');
+            const matchLeaderboard = document.getElementById('matchLeaderboard');
+            
+            if (leaderboardContainer && matchLeaderboard) {
+                // Sort players by kills (descending)
+                const sortedPlayers = [...allPlayers].sort((a, b) => (b.kills || 0) - (a.kills || 0));
+                
+                // Clear previous content
+                leaderboardContainer.innerHTML = '';
+                
+                // Add each player to the leaderboard
+                sortedPlayers.forEach((p, index) => {
+                    const entry = document.createElement('div');
+                    entry.className = 'leaderboard-entry';
+                    
+                    // Highlight winners (top players)
+                    if (index === 0) {
+                        entry.classList.add('winner');
+                    }
+                    
+                    entry.innerHTML = `
+                        <div class="leaderboard-rank">${index + 1}</div>
+                        <div class="leaderboard-name">${p.name || 'Player'}</div>
+                        <div class="leaderboard-kills">${p.kills || 0}</div>
+                    `;
+                    
+                    leaderboardContainer.appendChild(entry);
+                });
+                
+                // Show the leaderboard
+                matchLeaderboard.style.display = 'block';
+            }
+        } else {
+            // Hide leaderboard for single player matches
+            const matchLeaderboard = document.getElementById('matchLeaderboard');
+            if (matchLeaderboard) {
+                matchLeaderboard.style.display = 'none';
+            }
         }
     }
 

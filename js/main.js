@@ -321,6 +321,15 @@ class Game {
                     player.characterId = playerData.characterId;
                     this.loadCharacterSprite(player);
                 }
+                
+                // Handle invulnerability state
+                if (playerData.invulnerable !== undefined) {
+                    player.invulnerable = playerData.invulnerable;
+                    // If invulnerable, set the timer
+                    if (player.invulnerable) {
+                        player.invulnerableTimer = GAME_CONFIG.INVULN_TIME;
+                    }
+                }
             } else if (this.gameState === 'playing') {
                 console.warn(`[Main] Received game state update for unknown player: ${playerId}`);
             }
@@ -968,6 +977,7 @@ class Game {
                 vy: this.player.vy,
                 hp: this.player.hp,
                 alive: this.player.alive,
+                invulnerable: this.player.invulnerable, // Send invulnerability state
                 aimAngle: this.player.angle, // Send exact looking angle
                 weapon: this.player.weapon,
                 name: this.player.name,
@@ -1463,8 +1473,45 @@ class Game {
             this.updateMainMenuProfile();
         }
 
-        // Show results
-        this.ui.showResults(playerWon, this.player, coinsEarned);
+        // Collect all players for leaderboard
+        const allPlayers = [];
+        
+        // Add local player
+        if (this.player) {
+            allPlayers.push({
+                name: this.player.name || 'Player',
+                kills: this.player.kills || 0,
+                deaths: this.player.deaths || 0
+            });
+        }
+        
+        // Add remote players
+        if (this.gameMode === 'multiplayer') {
+            for (let peerId in this.remotePlayers) {
+                const p = this.remotePlayers[peerId];
+                if (p) {
+                    allPlayers.push({
+                        name: p.name || 'Player',
+                        kills: p.kills || 0,
+                        deaths: p.deaths || 0
+                    });
+                }
+            }
+        }
+        
+        // Add bots
+        for (let bot of this.bots) {
+            if (bot) {
+                allPlayers.push({
+                    name: 'Bot',
+                    kills: bot.kills || 0,
+                    deaths: bot.deaths || 0
+                });
+            }
+        }
+        
+        // Show results with leaderboard
+        this.ui.showResults(playerWon, this.player, coinsEarned, allPlayers);
 
         // Disconnect multiplayer if active
         if (this.multiplayer.peer) {

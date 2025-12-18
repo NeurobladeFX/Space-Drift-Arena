@@ -1205,8 +1205,8 @@ body {
 }
 
 .badge-icon .badge-image {
-    width: 64px;
-    height: 64px;
+    width: 80px;
+    height: 80px;
     object-fit: contain;
     filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.5));
 }
@@ -1619,8 +1619,8 @@ padding-top: 80px;
 }
 
 .badge-icon .badge-image {
-    width: 64px;
-    height: 64px;
+    width: 80px;
+    height: 80px;
     object-fit: contain;
     filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.5));
 }

@@ -301,6 +301,19 @@ export class Multiplayer {
                 if (this.onGameStart) this.onGameStart(data.settings || {});
                 break;
             }
+            
+            case 'GAME_START': {
+                // Server sends this to joining players to start the game
+                if (data.yourId && data.players) {
+                    // Set up local player and remote players
+                    this.localId = data.yourId;
+                    this.players = data.players;
+                    
+                    // Trigger game start
+                    if (this.onGameStart) this.onGameStart({});
+                }
+                break;
+            }
 
             case 'GAME_STATE': {
                 if (this.onGameStateUpdate) this.onGameStateUpdate(data.playerId, data.player);

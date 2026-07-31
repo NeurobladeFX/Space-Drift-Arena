@@ -3447,3 +3447,11 @@ body {
 .leaderboard-avatar { width: 100%; height: 100%; object-fit: cover; }
 .leaderboard-avatar-text { font-size: 24px; line-height: 32px; }
 
+
+
+/* Respawn Overlay */
+.respawn-overlay { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 400px; background: rgba(15, 20, 35, 0.85); backdrop-filter: blur(10px); border: 1px solid rgba(0, 240, 255, 0.3); border-radius: 12px; padding: 20px; box-shadow: 0 0 30px rgba(0, 240, 255, 0.2); z-index: 1000; display: flex; flex-direction: column; align-items: center; }
+.respawn-title { color: #FFFFFF; font-size: 28px; margin-bottom: 10px; text-shadow: 0 0 10px rgba(0, 240, 255, 0.8); text-align: center; }
+#respawnTimeLeft { color: #00F0FF; font-weight: bold; }
+.respawn-overlay .match-leaderboard { margin: 10px 0 0 0; }
+

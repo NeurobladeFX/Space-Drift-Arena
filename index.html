@@ -344,11 +344,17 @@
                                 </label>
                                 <div id="avatarPreview"></div>
                             </div>
-                            <div class="preset-avatar-grid" id="presetAvatarGrid" style="margin-top: 15px; display: flex; gap: 10px; justify-content: center;">
+                            <div class="preset-avatar-grid" id="presetAvatarGrid" style="margin-top: 15px; display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
                                 <img src="assets/ui/avatar_robot.png" class="preset-avatar" data-avatar="assets/ui/avatar_robot.png" alt="Robot">
                                 <img src="assets/ui/avatar_alien.png" class="preset-avatar" data-avatar="assets/ui/avatar_alien.png" alt="Alien">
                                 <img src="assets/ui/avatar_synth.png" class="preset-avatar" data-avatar="assets/ui/avatar_synth.png" alt="Synth">
                                 <img src="assets/ui/avatar_marine.png" class="preset-avatar" data-avatar="assets/ui/avatar_marine.png" alt="Marine">
+                                <img src="assets/ui/avatar_pilot.png" class="preset-avatar" data-avatar="assets/ui/avatar_pilot.png" alt="Pilot">
+                                <img src="assets/ui/avatar_cyborg.png" class="preset-avatar" data-avatar="assets/ui/avatar_cyborg.png" alt="Cyborg">
+                                <img src="assets/ui/avatar_bounty_hunter.png" class="preset-avatar" data-avatar="assets/ui/avatar_bounty_hunter.png" alt="Bounty Hunter">
+                                <img src="assets/ui/avatar_android.png" class="preset-avatar" data-avatar="assets/ui/avatar_android.png" alt="Android">
+                                <img src="assets/ui/avatar_mech.png" class="preset-avatar" data-avatar="assets/ui/avatar_mech.png" alt="Mech">
+                                <img src="assets/ui/avatar_spec_ops.png" class="preset-avatar" data-avatar="assets/ui/avatar_spec_ops.png" alt="Spec Ops">
                             </div>
                         </div>
                         <div class="profile-stats">
@@ -484,6 +490,17 @@
                 <div class="badge-display">
                     <div class="badge-icon" id="currentBadge">🔰</div>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Respawn Leaderboard Overlay -->
+    <div id="respawnOverlay" class="respawn-overlay" style="display: none;">
+        <h2 class="respawn-title">Respawning in <span id="respawnTimeLeft">3</span></h2>
+        <div class="match-leaderboard">
+            <h3>LEADERBOARD</h3>
+            <div id="respawnLeaderboardContainer" class="leaderboard-container">
+                <!-- Populated dynamically -->
             </div>
         </div>
     </div>

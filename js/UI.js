@@ -798,4 +798,45 @@ export class UI {
     getSelectedLevel() {
         return this.selectedLevelId || 'neon_void';
     }
+
+    showRespawnOverlay(timeLeft, allPlayers, localPlayerName) {
+        const overlay = document.getElementById('respawnOverlay');
+        const timeSpan = document.getElementById('respawnTimeLeft');
+        const container = document.getElementById('respawnLeaderboardContainer');
+
+        if (!overlay || !timeSpan || !container) return;
+
+        timeSpan.textContent = Math.ceil(timeLeft);
+
+        // Populate leaderboard
+        container.innerHTML = '';
+        allPlayers.sort((a, b) => b.kills - a.kills);
+
+        for (let i = 0; i < Math.min(4, allPlayers.length); i++) {
+            const p = allPlayers[i];
+            const entry = document.createElement('div');
+            entry.className = 'leaderboard-entry';
+            if (p.name === localPlayerName) {
+                entry.classList.add('winner'); // highlight local player
+            }
+
+            const avatarSrc = p.avatar || 'assets/ui/avatar_robot.png';
+            const avatarHtml = avatarSrc.length > 5 ? `<img src="${avatarSrc}" class="leaderboard-avatar" alt="avatar">` : `<span class="leaderboard-avatar-text">${avatarSrc}</span>`;
+
+            entry.innerHTML = `
+                <div class="leaderboard-rank">${i + 1}</div>
+                <div class="leaderboard-avatar-wrapper">${avatarHtml}</div>
+                <div class="leaderboard-name">${p.name || 'Player'}</div>
+                <div class="leaderboard-kills">${p.kills || 0}</div>
+            `;
+            container.appendChild(entry);
+        }
+
+        overlay.style.display = 'flex';
+    }
+
+    hideRespawnOverlay() {
+        const overlay = document.getElementById('respawnOverlay');
+        if (overlay) overlay.style.display = 'none';
+    }
 }

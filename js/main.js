@@ -653,7 +653,13 @@ class Game {
                 bot.name = botNames[Math.floor(Math.random() * botNames.length)];
 
                 // Assign random avatar
-                const botAvatars = ['assets/ui/avatar_robot.png', 'assets/ui/avatar_alien.png', 'assets/ui/avatar_synth.png', 'assets/ui/avatar_marine.png'];
+                const botAvatars = [
+                    'assets/ui/avatar_robot.png', 'assets/ui/avatar_alien.png', 
+                    'assets/ui/avatar_synth.png', 'assets/ui/avatar_marine.png',
+                    'assets/ui/avatar_pilot.png', 'assets/ui/avatar_cyborg.png',
+                    'assets/ui/avatar_bounty_hunter.png', 'assets/ui/avatar_android.png',
+                    'assets/ui/avatar_mech.png', 'assets/ui/avatar_spec_ops.png'
+                ];
                 bot.avatar = botAvatars[Math.floor(Math.random() * botAvatars.length)];
 
                 this.bots.push(bot);
@@ -1161,69 +1167,26 @@ class Game {
             
             // If player is dead, render the respawn timer and leaderboard overlay
             if (!this.player.alive) {
-                this.renderRespawnTimer(ctx, this.player);
+                this.renderRespawnTimer(this.player);
+            } else {
+                this.ui.hideRespawnOverlay();
             }
         }
     }
 
-    renderRespawnTimer(ctx, player) {
-        const screenPos = this.camera.worldToScreen(player.x, player.y);
-
-        ctx.save();
-        ctx.fillStyle = '#FFFFFF';
-        ctx.font = '32px Arial';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-
-        const timeLeft = Math.ceil(player.respawnTimer);
-        ctx.fillText('Respawning in ' + timeLeft, screenPos.x, screenPos.y - 50);
-
-        // Render In-Game Leaderboard while dead
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-        ctx.fillRect(screenPos.x - 150, screenPos.y, 300, 200);
-        ctx.strokeStyle = '#00F0FF';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(screenPos.x - 150, screenPos.y, 300, 200);
-
-        ctx.fillStyle = '#00F0FF';
-        ctx.font = 'bold 20px Arial';
-        ctx.fillText('LEADERBOARD', screenPos.x, screenPos.y + 30);
-
-        // Collect all players
+    renderRespawnTimer(player) {
+        // Collect all players for the leaderboard
         const allPlayers = [];
-        if (this.player) allPlayers.push({ name: this.player.name || 'You', kills: this.player.kills });
+        if (this.player) allPlayers.push({ name: this.player.name || 'You', kills: this.player.kills, avatar: this.player.avatar });
         for (let bot of this.bots) {
-            if (bot) allPlayers.push({ name: bot.name || 'Bot', kills: bot.kills });
+            if (bot) allPlayers.push({ name: bot.name || 'Bot', kills: bot.kills, avatar: bot.avatar });
         }
         for (let peerId in this.remotePlayers) {
             const rp = this.remotePlayers[peerId];
-            if (rp) allPlayers.push({ name: rp.name || 'Player', kills: rp.kills });
+            if (rp) allPlayers.push({ name: rp.name || 'Player', kills: rp.kills, avatar: rp.avatar });
         }
 
-        // Sort by kills
-        allPlayers.sort((a, b) => b.kills - a.kills);
-
-        // Draw top 4
-        ctx.font = '16px Arial';
-        ctx.textAlign = 'left';
-        for (let i = 0; i < Math.min(4, allPlayers.length); i++) {
-            const p = allPlayers[i];
-            const yOffset = screenPos.y + 70 + (i * 30);
-            
-            // Highlight player
-            if (p.name === (this.player.name || 'You')) {
-                ctx.fillStyle = '#FFD700';
-            } else {
-                ctx.fillStyle = '#FFFFFF';
-            }
-            
-            ctx.fillText(`${i + 1}. ${p.name}`, screenPos.x - 130, yOffset);
-            ctx.textAlign = 'right';
-            ctx.fillText(`${p.kills} Kills`, screenPos.x + 130, yOffset);
-            ctx.textAlign = 'left';
-        }
-
-        ctx.restore();
+        this.ui.showRespawnOverlay(player.respawnTimer, allPlayers, this.player.name || 'You');
     }
 
     spawnWeaponPickup() {

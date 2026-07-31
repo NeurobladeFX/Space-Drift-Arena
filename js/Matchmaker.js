@@ -93,11 +93,10 @@ export class Matchmaker {
         switch (msg.type) {
             case 'MAKE_HOST':
                 if (this.searchTimeout) clearTimeout(this.searchTimeout);
-                // We were chosen as host; call hostGame and confirm
+                console.log('[Matchmaker] Selected as host for new match');
                 (async () => {
-                    console.log('[Matchmaker] MAKE_HOST', msg);
                     try {
-                        await this.multiplayer.hostGame();
+                        await this.multiplayer.hostGame(msg.roomId);
                         if (this.inQueue) {
                             this.multiplayer.isRandomMatch = true;
                         }

@@ -55,14 +55,20 @@ class Game {
             this.simulateBotLobby();
         };
 
-        // Connect matchmaker socket early (needed for server-mediated rooms)
-        try {
-            console.log('[Main] Connecting to matchmaker at:', matchmakerUrl);
-            this.matchmaker.connect();
-        } catch (e) {
-            console.warn('[Main] Matchmaker connect failed', e);
-            this.ui.showJoinError('Failed to connect to matchmaker service. Please check your internet connection.');
-        }
+        // Initialize local ID early so we can register with matchmaker
+        this.multiplayer.init().then(id => {
+            console.log('[Main] Local multiplayer ID:', id);
+            this.matchmaker.setPeerId(id);
+            
+            // Connect matchmaker socket (needed for server-mediated rooms)
+            try {
+                console.log('[Main] Connecting to matchmaker at:', matchmakerUrl);
+                this.matchmaker.connect();
+            } catch (e) {
+                console.warn('[Main] Matchmaker connect failed', e);
+                this.ui.showJoinError('Failed to connect to matchmaker service. Please check your internet connection.');
+            }
+        }).catch(err => console.error('Peer init failed', err));
 
         // --- BACKGROUND MUSIC & AUDIO INTERACTION ---
         this.musicStarted = false;
@@ -82,12 +88,6 @@ class Game {
         // --- UI HOVER SOUNDS ---
         // Pass sound manager to UI or hook it here
         this.setupUIHoverSounds();
-
-        // Initialize Peer early so we can register with matchmaker
-        this.multiplayer.init().then(id => {
-            console.log('[Main] Peer initialized:', id);
-            this.matchmaker.setPeerId(id);
-        }).catch(err => console.error('Peer init failed', err));
 
         // Set up profile click handler
         document.getElementById('inGameProfile').addEventListener('click', () => {

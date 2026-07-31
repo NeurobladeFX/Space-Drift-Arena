@@ -34,7 +34,7 @@ export class Multiplayer {
     }
 
     // Host a new game
-    async hostGame() {
+    async hostGame(providedRoomId = null) {
         console.log('[Multiplayer] hostGame called');
 
         // Wait for matchmaker connection if not connected
@@ -54,8 +54,8 @@ export class Multiplayer {
         }
 
         this.isHost = true;
-        const roomId = `room_${Date.now().toString(36)}`;
-        console.log('[Multiplayer] Generated room ID:', roomId);
+        const roomId = providedRoomId || `room_${Date.now().toString(36)}`;
+        console.log('[Multiplayer] Using room ID:', roomId);
         this.roomCode = roomId;
         this.players = [{ id: this.localId, name: this.localPlayerName || 'Host', isHost: true }];
 

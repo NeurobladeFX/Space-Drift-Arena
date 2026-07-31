@@ -620,7 +620,7 @@ export class UI {
             if (profileScreenAvatar && profile.avatar) {
                 profileScreenAvatar.innerHTML = `<img src="${profile.avatar}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`;
             } else if (profileScreenAvatar) {
-                profileScreenAvatar.textContent = '👤';
+                profileScreenAvatar.innerHTML = `<img src="assets/ui/avatar_robot.png" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`;
             }
 
             // Update Stats

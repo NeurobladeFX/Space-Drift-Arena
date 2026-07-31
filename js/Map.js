@@ -265,22 +265,22 @@ export class Map {
                 { x1: 50, y1: 50, x2: 50, y2: 2110, w: 100 }, // Left
                 { x1: 3790, y1: 50, x2: 3790, y2: 2110, w: 100 }, // Right
 
-                // --- Corner Bases (Spawns) ---
-                // Bottom-Left Base (Shield walls)
-                { x1: 400, y1: 50, x2: 400, y2: 400, w: 40 },
-                { x1: 50, y1: 400, x2: 400, y2: 400, w: 40 },
+                // --- Corner Bases (Spawns) - L-Shaped Shields ---
+                // Bottom-Left Base
+                { x1: 250, y1: 450, x2: 450, y2: 450, w: 40 },
+                { x1: 450, y1: 250, x2: 450, y2: 450, w: 40 },
 
                 // Top-Left Base
-                { x1: 400, y1: 2110, x2: 400, y2: 1760, w: 40 },
-                { x1: 50, y1: 1760, x2: 400, y2: 1760, w: 40 },
+                { x1: 250, y1: 1710, x2: 450, y2: 1710, w: 40 },
+                { x1: 450, y1: 1710, x2: 450, y2: 1910, w: 40 },
 
                 // Bottom-Right Base
-                { x1: 3440, y1: 50, x2: 3440, y2: 400, w: 40 },
-                { x1: 3790, y1: 400, x2: 3440, y2: 400, w: 40 },
+                { x1: 3390, y1: 450, x2: 3590, y2: 450, w: 40 },
+                { x1: 3390, y1: 250, x2: 3390, y2: 450, w: 40 },
 
                 // Top-Right Base
-                { x1: 3440, y1: 2110, x2: 3440, y2: 1760, w: 40 },
-                { x1: 3790, y1: 1760, x2: 3440, y2: 1760, w: 40 },
+                { x1: 3390, y1: 1710, x2: 3590, y2: 1710, w: 40 },
+                { x1: 3390, y1: 1710, x2: 3390, y2: 1910, w: 40 },
 
                 // --- Central High-Risk Zone (The Core) ---
                 // Octagon-like structure in the center

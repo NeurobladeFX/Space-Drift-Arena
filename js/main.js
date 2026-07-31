@@ -846,7 +846,8 @@ class Game {
             const botAI = this.botAIs[i];
 
             if (botAI && bot && bot.alive) {
-                botAI.update(deltaTime, this.player);
+                const target = this.getClosestTargetFor(bot);
+                botAI.update(deltaTime, target);
             }
 
             if (bot) {
@@ -1499,6 +1500,45 @@ class Game {
         console.log(`â° Time's up! Winner: ${winner.name || 'Bot'} with ${maxKills} kills`);
 
         this.endGame(playerWon);
+    }
+
+    getClosestTargetFor(entity) {
+        let closestDist = Infinity;
+        let closestTarget = null;
+
+        // Check local player
+        if (this.player && this.player.alive && !this.player.invulnerable && this.player !== entity) {
+            const dist = Math.hypot(this.player.x - entity.x, this.player.y - entity.y);
+            if (dist < closestDist) {
+                closestDist = dist;
+                closestTarget = this.player;
+            }
+        }
+
+        // Check bots
+        for (let bot of this.bots) {
+            if (bot && bot.alive && bot !== entity) {
+                const dist = Math.hypot(bot.x - entity.x, bot.y - entity.y);
+                if (dist < closestDist) {
+                    closestDist = dist;
+                    closestTarget = bot;
+                }
+            }
+        }
+
+        // Check remote players
+        for (let peerId in this.remotePlayers) {
+            const rp = this.remotePlayers[peerId];
+            if (rp && rp.alive && !rp.invulnerable && rp !== entity) {
+                const dist = Math.hypot(rp.x - entity.x, rp.y - entity.y);
+                if (dist < closestDist) {
+                    closestDist = dist;
+                    closestTarget = rp;
+                }
+            }
+        }
+
+        return closestTarget;
     }
 
     endGame(playerWon) {

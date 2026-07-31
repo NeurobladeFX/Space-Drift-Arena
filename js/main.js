@@ -1158,31 +1158,36 @@ class Game {
         // Update HUD
         if (this.player) {
             this.ui.updateHUD(this.player);
+            
+            // If player is dead, render the respawn timer and leaderboard overlay
+            if (!this.player.alive) {
+                this.renderRespawnTimer(ctx, this.player);
+            }
         }
     }
 
-    renderRespawnTimer(player) {
+    renderRespawnTimer(ctx, player) {
         const screenPos = this.camera.worldToScreen(player.x, player.y);
 
-        this.ctx.save();
-        this.ctx.fillStyle = '#FFFFFF';
-        this.ctx.font = '32px Arial';
-        this.ctx.textAlign = 'center';
-        this.ctx.textBaseline = 'middle';
+        ctx.save();
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = '32px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
 
         const timeLeft = Math.ceil(player.respawnTimer);
-        this.ctx.fillText('Respawning in ' + timeLeft, screenPos.x, screenPos.y - 50);
+        ctx.fillText('Respawning in ' + timeLeft, screenPos.x, screenPos.y - 50);
 
         // Render In-Game Leaderboard while dead
-        this.ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-        this.ctx.fillRect(screenPos.x - 150, screenPos.y, 300, 200);
-        this.ctx.strokeStyle = '#00F0FF';
-        this.ctx.lineWidth = 2;
-        this.ctx.strokeRect(screenPos.x - 150, screenPos.y, 300, 200);
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+        ctx.fillRect(screenPos.x - 150, screenPos.y, 300, 200);
+        ctx.strokeStyle = '#00F0FF';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(screenPos.x - 150, screenPos.y, 300, 200);
 
-        this.ctx.fillStyle = '#00F0FF';
-        this.ctx.font = 'bold 20px Arial';
-        this.ctx.fillText('LEADERBOARD', screenPos.x, screenPos.y + 30);
+        ctx.fillStyle = '#00F0FF';
+        ctx.font = 'bold 20px Arial';
+        ctx.fillText('LEADERBOARD', screenPos.x, screenPos.y + 30);
 
         // Collect all players
         const allPlayers = [];
@@ -1199,26 +1204,26 @@ class Game {
         allPlayers.sort((a, b) => b.kills - a.kills);
 
         // Draw top 4
-        this.ctx.font = '16px Arial';
-        this.ctx.textAlign = 'left';
+        ctx.font = '16px Arial';
+        ctx.textAlign = 'left';
         for (let i = 0; i < Math.min(4, allPlayers.length); i++) {
             const p = allPlayers[i];
             const yOffset = screenPos.y + 70 + (i * 30);
             
             // Highlight player
             if (p.name === (this.player.name || 'You')) {
-                this.ctx.fillStyle = '#FFD700';
+                ctx.fillStyle = '#FFD700';
             } else {
-                this.ctx.fillStyle = '#FFFFFF';
+                ctx.fillStyle = '#FFFFFF';
             }
             
-            this.ctx.fillText(`${i + 1}. ${p.name}`, screenPos.x - 130, yOffset);
-            this.ctx.textAlign = 'right';
-            this.ctx.fillText(`${p.kills} Kills`, screenPos.x + 130, yOffset);
-            this.ctx.textAlign = 'left';
+            ctx.fillText(`${i + 1}. ${p.name}`, screenPos.x - 130, yOffset);
+            ctx.textAlign = 'right';
+            ctx.fillText(`${p.kills} Kills`, screenPos.x + 130, yOffset);
+            ctx.textAlign = 'left';
         }
 
-        this.ctx.restore();
+        ctx.restore();
     }
 
     spawnWeaponPickup() {

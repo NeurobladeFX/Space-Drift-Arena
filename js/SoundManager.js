@@ -11,7 +11,7 @@ export class SoundManager {
             'die',
             'hover',
             'laser',
-            'rocker'
+            'rocket'
         ];
 
         this.init();

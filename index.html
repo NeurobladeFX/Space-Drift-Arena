@@ -90,6 +90,21 @@
                 <p>🚀 Move by shooting • ⚔️ Physics-based combat</p>
             </div>
         </div>
+
+        <!-- Banner Ad -->
+        <div class="banner-ad-container">
+            <script type="text/javascript">
+                atOptions = {
+                    'key': '036397a2ca7f2fdc659af7dfab4353e6',
+                    'format': 'iframe',
+                    'height': 60,
+                    'width': 468,
+                    'params': {}
+                };
+            </script>
+            <script type="text/javascript"
+                src="https://www.highperformanceformat.com/036397a2ca7f2fdc659af7dfab4353e6/invoke.js"></script>
+        </div>
     </div>
 
     <!-- How to Play Screen -->
@@ -145,6 +160,20 @@
                 </button>
             </div>
             <button id="backToMainBtn" class="btn btn-secondary" style="margin-top: 20px;">← BACK</button>
+        </div>
+    </div>
+
+    <!-- Level Selection Screen -->
+    <div id="levelSelectionScreen" class="screen">
+        <div class="menu-container level-selection-container">
+            <h2>SELECT BATTLE ARENA</h2>
+            <div id="levelSelectionGrid" class="level-selection-grid">
+                <!-- Levels will be populated by JavaScript -->
+            </div>
+            <div class="level-selection-actions">
+                <button id="levelConfirmBtn" class="btn btn-primary">CONFIRM</button>
+                <button id="backToModeBtnFromLevel" class="btn btn-secondary">← BACK</button>
+            </div>
         </div>
     </div>
 
@@ -214,6 +243,10 @@
                         <option value="300">5 Minutes</option>
                         <option value="600">10 Minutes</option>
                     </select>
+                </div>
+                <div class="setting-row">
+                    <label>Arena:</label>
+                    <button id="hostChangeLevelBtn" class="btn btn-secondary btn-small">CHANGE LEVEL</button>
                 </div>
             </div>
             <div class="player-list">
@@ -423,7 +456,8 @@
                     <div class="xp-bar-bg">
                         <div id="inGameXpBar" class="xp-bar" style="width: 0%"></div>
                     </div>
-                    <div class="xp-text">XP: <span id="inGameXpText">0</span>/<span id="inGameXpNext">100</span></div>
+                    <div class="xp-text">XP: <span id="inGameXpText">0</span>/<span id="inGameXpNext">100</span>
+                    </div>
                 </div>
                 <div class="badge-display">
                     <div class="badge-icon" id="currentBadge">🔰</div>
@@ -482,7 +516,7 @@
                     <span id="coinsEarned" class="stat-value" style="color: #FFD700;">+0 💰</span>
                 </div>
             </div>
-            
+
             <!-- Multiplayer Leaderboard -->
             <div id="matchLeaderboard" class="match-leaderboard" style="display: none;">
                 <h3>Match Leaderboard</h3>

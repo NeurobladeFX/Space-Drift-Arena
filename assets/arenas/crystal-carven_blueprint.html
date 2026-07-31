@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Crystal Cavern – Mini Militia Blueprint (Clear)</title>
+
+<style>
+body {
+  margin: 0;
+  background: #0a0f18;
+  font-family: monospace;
+  color: #eaffff;
+}
+
+#viewport {
+  width: 100vw;
+  height: 100vh;
+  overflow: auto;
+  background: #05080f;
+}
+
+/* LEVEL CANVAS */
+#level {
+  position: relative;
+  width: 4600px;
+  height: 1900px;
+  background:
+    linear-gradient(#0e1a28, #04070d);
+}
+
+/* GRID (READABILITY) */
+#level::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    repeating-linear-gradient(
+      to right,
+      rgba(255,255,255,0.04) 0,
+      rgba(255,255,255,0.04) 1px,
+      transparent 1px,
+      transparent 200px
+    ),
+    repeating-linear-gradient(
+      to bottom,
+      rgba(255,255,255,0.04) 0,
+      rgba(255,255,255,0.04) 1px,
+      transparent 1px,
+      transparent 200px
+    );
+  pointer-events: none;
+}
+
+/* ELEMENT TYPES */
+.tunnel {
+  position: absolute;
+  background: rgba(0,180,255,0.25);
+  border-radius: 30px;
+  box-shadow: inset 0 0 30px rgba(0,200,255,0.4);
+}
+
+.room {
+  position: absolute;
+  background: rgba(0,255,180,0.25);
+  border-radius: 50px;
+  box-shadow: inset 0 0 40px rgba(0,255,180,0.4);
+}
+
+.platform {
+  position: absolute;
+  background: linear-gradient(#fff59e, #e6c94a);
+  border-radius: 8px;
+  box-shadow: 0 6px 0 #b89b1a;
+}
+
+.platform.tall {
+  width: 80px;
+  height: 180px;
+}
+
+.platform.long {
+  height: 18px;
+}
+
+.crystal {
+  position: absolute;
+  width: 26px;
+  height: 48px;
+  background: linear-gradient(#bfffff, #55ddff);
+  clip-path: polygon(50% 0%, 100% 30%, 80% 100%, 20% 100%, 0% 30%);
+  box-shadow: 0 0 18px #6efcff;
+}
+
+.spawn {
+  position: absolute;
+  width: 60px;
+  height: 60px;
+  border: 3px dashed #ffffff;
+  border-radius: 50%;
+}
+
+.lava {
+  position: absolute;
+  bottom: 0;
+  width: 100%;
+  height: 140px;
+  background: linear-gradient(#ff2a00, #ff9900);
+  box-shadow: inset 0 0 40px rgba(0,0,0,0.6);
+}
+
+.label {
+  position: absolute;
+  font-size: 14px;
+  opacity: 0.85;
+}
+</style>
+</head>
+
+<body>
+<div id="viewport">
+<div id="level">
+
+<!-- TITLE -->
+<div class="label" style="left:20px;top:20px;">
+CRYSTAL CAVERN – MINI MILITIA LEVEL BLUEPRINT (DESIGN VIEW)
+</div>
+
+<!-- SPAWNS -->
+<div class="spawn" style="left:150px; top:1500px;"></div>
+<div class="spawn" style="left:4300px; top:1500px;"></div>
+
+<!-- MAIN LOWER TUNNEL -->
+<div class="tunnel" style="left:200px; top:1400px; width:4200px; height:140px;"></div>
+
+<!-- LOWER PLATFORM RUN -->
+<div class="platform long" style="left:400px; top:1430px; width:220px;"></div>
+<div class="platform long" style="left:800px; top:1430px; width:200px;"></div>
+<div class="platform long" style="left:1200px; top:1430px; width:240px;"></div>
+<div class="platform long" style="left:1700px; top:1430px; width:200px;"></div>
+<div class="platform long" style="left:2200px; top:1430px; width:260px;"></div>
+
+<!-- LEFT VERTICAL SHAFT -->
+<div class="tunnel" style="left:500px; top:800px; width:160px; height:700px;"></div>
+
+<div class="platform tall" style="left:540px; top:1250px;"></div>
+<div class="platform tall" style="left:540px; top:1000px;"></div>
+
+<!-- LEFT COMBAT ROOM -->
+<div class="room" style="left:200px; top:850px; width:500px; height:400px;"></div>
+
+<div class="platform long" style="left:260px; top:980px; width:220px;"></div>
+<div class="platform long" style="left:360px; top:880px; width:180px;"></div>
+
+<!-- CENTER GRAND CAVERN -->
+<div class="room" style="left:1500px; top:650px; width:900px; height:550px;"></div>
+
+<div class="platform tall" style="left:1650px; top:950px;"></div>
+<div class="platform tall" style="left:1850px; top:900px;"></div>
+<div class="platform long" style="left:1750px; top:800px; width:300px;"></div>
+<div class="platform long" style="left:1950px; top:700px; width:260px;"></div>
+
+<!-- CENTER SHAFT -->
+<div class="tunnel" style="left:1900px; top:300px; width:200px; height:900px;"></div>
+
+<!-- RIGHT ZIG-ZAG TUNNELS -->
+<div class="tunnel" style="left:2700px; top:1100px; width:400px; height:140px;"></div>
+<div class="tunnel" style="left:3000px; top:900px; width:380px; height:140px;"></div>
+<div class="tunnel" style="left:3300px; top:700px; width:360px; height:140px;"></div>
+
+<!-- RIGHT HIGH ROOM -->
+<div class="room" style="left:3200px; top:400px; width:700px; height:350px;"></div>
+
+<div class="platform long" style="left:3300px; top:580px; width:260px;"></div>
+<div class="platform tall" style="left:3600px; top:520px;"></div>
+
+<!-- CRYSTALS / COVER -->
+<div class="crystal" style="left:520px; top:1380px;"></div>
+<div class="crystal" style="left:950px; top:1380px;"></div>
+<div class="crystal" style="left:1700px; top:900px;"></div>
+<div class="crystal" style="left:2100px; top:820px;"></div>
+<div class="crystal" style="left:3400px; top:650px;"></div>
+
+<!-- LAVA -->
+<div class="lava"></div>
+
+</div>
+</div>
+</body>
+</html>

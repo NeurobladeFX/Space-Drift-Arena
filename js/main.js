@@ -1,4 +1,4 @@
-﻿import { GAME_CONFIG, SPAWN_POINTS, WEAPONS, COLORS } from './config.js';
+import { GAME_CONFIG, SPAWN_POINTS, WEAPONS, COLORS, LEVELS } from './config.js';
 import { Player } from './Player.js';
 import { BotAI } from './BotAI.js';
 import { Camera } from './Camera.js';
@@ -50,6 +50,17 @@ class Game {
         this.multiplayer.useServer = true;
         this.multiplayer.matchmaker = this.matchmaker;
 
+        this.matchmaker.onMatchmakingFailed = () => {
+            console.log('[Main] Matchmaking failed or timed out. Starting Bot Fallback match.');
+            const statusEl = document.getElementById('matchStatus');
+            if (statusEl) statusEl.textContent = 'No players found. Starting Bot Match...';
+            
+            setTimeout(() => {
+                this.gameMode = 'single';
+                this.initializeGame({ levelId: this.ui.getSelectedLevel() || 'neon_void', duration: 180 });
+            }, 1500);
+        };
+
         // Connect matchmaker socket early (needed for server-mediated rooms)
         try {
             console.log('[Main] Connecting to matchmaker at:', matchmakerUrl);
@@ -58,6 +69,25 @@ class Game {
             console.warn('[Main] Matchmaker connect failed', e);
             this.ui.showJoinError('Failed to connect to matchmaker service. Please check your internet connection.');
         }
+
+        // --- BACKGROUND MUSIC & AUDIO INTERACTION ---
+        this.musicStarted = false;
+        const startAudio = () => {
+            if (this.musicStarted) return;
+            console.log('[Main] Interaction detected - starting background music');
+            this.soundManager.play('background', 0.3, true);
+            this.musicStarted = true;
+
+            // Remove listeners after first successful play
+            window.removeEventListener('click', startAudio);
+            window.removeEventListener('keydown', startAudio);
+        };
+        window.addEventListener('click', startAudio);
+        window.addEventListener('keydown', startAudio);
+
+        // --- UI HOVER SOUNDS ---
+        // Pass sound manager to UI or hook it here
+        this.setupUIHoverSounds();
 
         // Initialize Peer early so we can register with matchmaker
         this.multiplayer.init().then(id => {
@@ -77,9 +107,25 @@ class Game {
         };
 
         this.ui.onStartGame = (mode) => {
-            console.log(`ðŸŽ® Starting game in ${mode} mode`);
+            console.log(`Starting game in ${mode} mode`);
             this.gameMode = mode;
-            this.initializeGame();
+            if (mode === 'single') {
+                const profile = this.shop.getProfile();
+                this.ui.renderLevelSelection(LEVELS, profile.playerLevel || 1);
+                this.ui.showLevelSelection();
+            } else {
+                this.ui.showMultiplayerOptions();
+            }
+        };
+
+        this.ui.onLevelConfirm = (levelId) => {
+            this.initializeGame({ levelId });
+        };
+
+        this.ui.onHostChangeLevel = () => {
+            const profile = this.shop.getProfile();
+            this.ui.renderLevelSelection(LEVELS, profile.playerLevel || 1);
+            this.ui.showLevelSelection();
         };
         this.ui.onHostClick = async () => {
             try {
@@ -123,8 +169,9 @@ class Game {
         this.ui.onStartMatchClick = () => {
             const isRandom = this.multiplayer.isRandomMatch;
             const duration = isRandom ? 240 : (this.ui.getMatchDuration() || 300); // Duration is already in seconds from UI
-            console.log('Starting match with duration:', duration, 's (Random:', isRandom, ')');
-            this.multiplayer.startGame({ duration });
+            const levelId = this.ui.getSelectedLevel();
+            console.log('Starting match with duration:', duration, 's, Level:', levelId);
+            this.multiplayer.startGame({ duration, levelId });
         };
         this.ui.onCancelHostClick = () => {
             this.multiplayer.disconnect();
@@ -193,7 +240,7 @@ class Game {
                 // Use default spawn position if not provided
                 const spawnX = playerData.x || 400;
                 const spawnY = playerData.y || 300;
-                this.remotePlayers[playerData.id] = new Player(spawnX, spawnY, false);
+                this.remotePlayers[playerData.id] = new Player(spawnX, spawnY, false, this.soundManager);
                 this.remotePlayers[playerData.id].isRemote = true; // Enable interpolation
             }
 
@@ -321,7 +368,7 @@ class Game {
                     player.characterId = playerData.characterId;
                     this.loadCharacterSprite(player);
                 }
-                
+
                 // Handle invulnerability state
                 if (playerData.invulnerable !== undefined) {
                     player.invulnerable = playerData.invulnerable;
@@ -523,10 +570,16 @@ class Game {
     }
 
     initializeGame(settings = {}) {
-        console.log('ðŸ”„ Initializing game...');
+        console.log('Initializing game...');
 
-        // Start background music
-        this.soundManager.play('background', 0.3, true);
+        // Theme and Map setup
+        const levelId = settings.levelId || this.ui.getSelectedLevel();
+        const levelConfig = LEVELS.find(l => l.id === levelId) || LEVELS[0];
+        this.map = new Map(levelConfig);
+        console.log(`Arena themed to: ${levelConfig.name}`);
+
+        // Music is now started via global interaction listener in constructor
+        // this.soundManager.play('background', 0.3, true);
 
         // Reset game state
         this.projectiles = [];
@@ -542,7 +595,7 @@ class Game {
             this.multiplayer.players.forEach(p => {
                 // IMPORTANT: Fix visibility - recreate player objects for everyone in the list
                 if (p.id !== this.multiplayer.localId) {
-                    this.remotePlayers[p.id] = new Player(p.x || 0, p.y || 0, false);
+                    this.remotePlayers[p.id] = new Player(p.x || 0, p.y || 0, false, this.soundManager);
                     this.remotePlayers[p.id].isRemote = true; // Enable interpolation
                     const rp = this.remotePlayers[p.id];
                     rp.id = p.id;
@@ -563,14 +616,25 @@ class Game {
         this.ui.showGame();
 
         // Create player
-        const spawnPoint = SPAWN_POINTS[Math.floor(Math.random() * SPAWN_POINTS.length)];
-        this.player = new Player(spawnPoint.x, spawnPoint.y, false);
+        const spawnPoint = this.map.getSpawnPoint();
+        this.player = new Player(spawnPoint.x, spawnPoint.y, false, this.soundManager);
         this.player.id = this.multiplayer.localId;
+        // Give player access to map for spawn-area clamping
+        this.player.mapRef = this.map;
         // Assign profile name and avatar to local player
         const profile = this.shop.getProfile();
         this.player.name = profile.name || 'Player';
         if (profile.avatar) this.player.avatar = profile.avatar;
         console.log(`ðŸ‘¤ Created player at (${spawnPoint.x}, ${spawnPoint.y})`);
+
+        // Respawn handler: position player safely inside map spawn area
+        this.player.onRespawn = () => {
+            const sp = this.map.getSpawnPoint();
+            this.player.x = sp.x;
+            this.player.y = sp.y;
+            // ensure no overlap with obstacles; Map already attempted safe points
+            console.log(`[Main] Player respawned at (${Math.floor(sp.x)}, ${Math.floor(sp.y)})`);
+        };
 
         // Create bots only in single player mode
         this.bots = [];
@@ -578,10 +642,13 @@ class Game {
         if (this.gameMode === 'single') {
             console.log('ðŸ¤– Creating bots for single player mode');
             for (let i = 1; i < 4; i++) {
-                const botSpawn = SPAWN_POINTS[(i) % SPAWN_POINTS.length];
-                const bot = new Player(botSpawn.x, botSpawn.y, true);
+                const botSpawn = this.map.getSpawnPoint();
+                const bot = new Player(botSpawn.x, botSpawn.y, true, this.soundManager);
                 bot.id = `bot_${i}`;
                 bot.isBot = true;
+
+                // Give bot access to map for spawn-area clamping
+                bot.mapRef = this.map;
 
                 // Assign random name
                 const botNames = [
@@ -593,23 +660,25 @@ class Game {
                 this.bots.push(bot);
 
                 // Create BotAI for each bot
+                // Bot respawn handler
+                bot.onRespawn = () => {
+                    const sp = this.map.getSpawnPoint();
+                    bot.x = sp.x;
+                    bot.y = sp.y;
+                    console.log(`[Main] Bot ${bot.id} respawned at (${Math.floor(sp.x)}, ${Math.floor(sp.y)})`);
+                };
+
                 this.botAIs.push(new BotAI(bot));
 
                 console.log(`ðŸ¤– Created bot ${i} at (${botSpawn.x}, ${botSpawn.y})`);
             }
         }
 
-        // Use obstacles from Map.js (no random generation to avoid invisible collisions)
+        // Use obstacles from Map.js
         this.obstacles = this.map.obstacles;
 
-        // Create stars for background (increased to 500 for more particles)
-        for (let i = 0; i < 500; i++) {
-            this.stars.push({
-                x: Math.random() * GAME_CONFIG.MAP_WIDTH,
-                y: Math.random() * GAME_CONFIG.MAP_HEIGHT,
-                size: Math.random() * 2.5 + 0.5
-            });
-        }
+        // Stars are now handled by Map.js renderBackground
+        this.stars = [];
 
         // Spawn initial weapons at game start
         for (let i = 0; i < 3; i++) {
@@ -830,7 +899,7 @@ class Game {
                         soundName = 'laser';
                         soundVolume = 0.4;
                     } else if (this.player.weapon === 'rocket_launcher') {
-                        soundName = 'rocker';
+                        soundName = 'rocket';
                         soundVolume = 0.5;
                     } else if (this.player.weapon === 'sniper') {
                         soundName = 'shoot';
@@ -1039,78 +1108,9 @@ class Game {
             this.camera.y = this.player.y - this.gameCanvas.height / 2;
         }
 
-        // Draw background stars with glow
-        for (let star of this.stars) {
-            const screenX = star.x - this.camera.x;
-            const screenY = star.y - this.camera.y;
-
-            // Only draw stars that are on screen
-            if (screenX >= -5 && screenX <= this.gameCanvas.width + 5 &&
-                screenY >= -5 && screenY <= this.gameCanvas.height + 5) {
-                // Add glow effect
-                ctx.shadowColor = '#00F0FF';
-                ctx.shadowBlur = star.size * 3;
-                ctx.fillStyle = star.size > 1.5 ? '#00F0FF' : '#FFFFFF';
-                ctx.beginPath();
-                ctx.arc(screenX, screenY, star.size, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.shadowBlur = 0;
-            }
-        }
-
-        // Draw planet obstacles
-        for (let obstacle of this.obstacles) {
-            const screenX = obstacle.x - this.camera.x;
-            const screenY = obstacle.y - this.camera.y;
-
-            // Only draw obstacles that are on screen
-            if (screenX + obstacle.radius >= 0 && screenX - obstacle.radius <= this.gameCanvas.width &&
-                screenY + obstacle.radius >= 0 && screenY - obstacle.radius <= this.gameCanvas.height) {
-
-                // Draw planet with gradient
-                const gradient = ctx.createRadialGradient(screenX, screenY, 0, screenX, screenY, obstacle.radius);
-                gradient.addColorStop(0, '#6B7280');
-                gradient.addColorStop(0.7, '#4B5563');
-                gradient.addColorStop(1, '#1F2937');
-
-                ctx.fillStyle = gradient;
-                ctx.beginPath();
-                ctx.arc(screenX, screenY, obstacle.radius, 0, Math.PI * 2);
-                ctx.fill();
-
-                // Add planet border
-                ctx.strokeStyle = '#374151';
-                ctx.lineWidth = 2;
-                ctx.stroke();
-            }
-        }
-
-        // Draw map boundaries
-        const boundaryThickness = 20;
-        const boundaryColor = 'rgba(255, 0, 85, 0.5)';
-
-        // Left boundary
-        if (this.camera.x < boundaryThickness) {
-            ctx.fillStyle = boundaryColor;
-            ctx.fillRect(-this.camera.x, 0, boundaryThickness, this.gameCanvas.height);
-        }
-
-        // Right boundary
-        if (this.camera.x + this.gameCanvas.width > GAME_CONFIG.MAP_WIDTH - boundaryThickness) {
-            ctx.fillStyle = boundaryColor;
-            ctx.fillRect(GAME_CONFIG.MAP_WIDTH - this.camera.x - boundaryThickness, 0, boundaryThickness, this.gameCanvas.height);
-        }
-
-        // Top boundary
-        if (this.camera.y < boundaryThickness) {
-            ctx.fillStyle = boundaryColor;
-            ctx.fillRect(0, -this.camera.y, this.gameCanvas.width, boundaryThickness);
-        }
-
-        // Bottom boundary
-        if (this.camera.y + this.gameCanvas.height > GAME_CONFIG.MAP_HEIGHT - boundaryThickness) {
-            ctx.fillStyle = boundaryColor;
-            ctx.fillRect(0, GAME_CONFIG.MAP_HEIGHT - this.camera.y - boundaryThickness, this.gameCanvas.width, boundaryThickness);
+        // Render the map and its elements (background, stars/parallax, boundaries, obstacles)
+        if (this.map) {
+            this.map.render(ctx, this.camera);
         }
 
         // Draw weapon pickups
@@ -1149,6 +1149,11 @@ class Game {
                 screenY >= -50 && screenY <= this.gameCanvas.height + 50) {
                 projectile.render(ctx, this.camera);
             }
+        }
+
+        // Draw map foreground (trees, for hiding)
+        if (this.map) {
+            this.map.renderForeground(ctx, this.camera);
         }
 
         // Update HUD
@@ -1191,10 +1196,19 @@ class Game {
         // Select a random weapon type
         const weaponType = weaponTypes[Math.floor(Math.random() * weaponTypes.length)];
 
-        // Generate random position within map bounds (with some padding)
-        const padding = 200;
-        const x = padding + Math.random() * (GAME_CONFIG.MAP_WIDTH - padding * 2);
-        const y = padding + Math.random() * (GAME_CONFIG.MAP_HEIGHT - padding * 2);
+        // Determine position
+        let x, y;
+        if (this.map.weaponPickupPoints && this.map.weaponPickupPoints.length > 0) {
+            // Use pre-defined points (Militia style)
+            const point = randomChoice(this.map.weaponPickupPoints);
+            x = point.x;
+            y = point.y;
+        } else {
+            // Fallback: Generate random position within map bounds (with some padding)
+            const padding = 200;
+            x = padding + Math.random() * (GAME_CONFIG.MAP_WIDTH - padding * 2);
+            y = padding + Math.random() * (GAME_CONFIG.MAP_HEIGHT - padding * 2);
+        }
 
         // Create and add the weapon pickup
         const pickup = new WeaponPickup(x, y, weaponType);
@@ -1398,7 +1412,11 @@ class Game {
             this.matchmaker.findMatch({ mode: 'battle_royale', name: profile.name });
             document.getElementById('matchStatus').textContent = 'Searching for opponents...';
         } else {
-            document.getElementById('matchStatus').textContent = 'Matchmaker unavailable.';
+            document.getElementById('matchStatus').textContent = 'Matchmaker unavailable. Starting Bot Match...';
+            setTimeout(() => {
+                this.gameMode = 'single';
+                this.initializeGame({ levelId: this.ui.getSelectedLevel() || 'neon_void', duration: 180 });
+            }, 1500);
         }
     }
 
@@ -1475,7 +1493,7 @@ class Game {
 
         // Collect all players for leaderboard
         const allPlayers = [];
-        
+
         // Add local player
         if (this.player) {
             allPlayers.push({
@@ -1484,7 +1502,7 @@ class Game {
                 deaths: this.player.deaths || 0
             });
         }
-        
+
         // Add remote players
         if (this.gameMode === 'multiplayer') {
             for (let peerId in this.remotePlayers) {
@@ -1498,7 +1516,7 @@ class Game {
                 }
             }
         }
-        
+
         // Add bots
         for (let bot of this.bots) {
             if (bot) {
@@ -1509,7 +1527,7 @@ class Game {
                 });
             }
         }
-        
+
         // Show results with leaderboard
         this.ui.showResults(playerWon, this.player, coinsEarned, allPlayers);
 
@@ -1579,6 +1597,16 @@ class Game {
                 console.warn('Error submitting match/leaderboard', err);
             }
         })();
+    }
+    setupUIHoverSounds() {
+        // Universal hover sound for all buttons
+        document.addEventListener('mouseover', (e) => {
+            if (e.target.tagName === 'BUTTON' || e.target.classList.contains('btn') || e.target.classList.contains('link')) {
+                if (this.soundManager) {
+                    this.soundManager.play('hover', 0.2);
+                }
+            }
+        }, true);
     }
 }
 

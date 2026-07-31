@@ -92,6 +92,7 @@ export class Matchmaker {
 
         switch (msg.type) {
             case 'MAKE_HOST':
+                if (this.searchTimeout) clearTimeout(this.searchTimeout);
                 // We were chosen as host; call hostGame and confirm
                 (async () => {
                     console.log('[Matchmaker] MAKE_HOST', msg);
@@ -114,6 +115,7 @@ export class Matchmaker {
                 break;
 
             case 'MATCH_FOUND':
+                if (this.searchTimeout) clearTimeout(this.searchTimeout);
                 console.log('[Matchmaker] Match found, connecting to host', msg.hostId);
                 // join host's peer id
                 (async () => {
@@ -140,7 +142,12 @@ export class Matchmaker {
             case 'MATCH_TIMEOUT':
                 console.log('[Matchmaker] Match timed out');
                 this.inQueue = false;
-                this.ui.showMultiplayerOptions();
+                if (this.searchTimeout) clearTimeout(this.searchTimeout);
+                if (this.onMatchmakingFailed) {
+                    this.onMatchmakingFailed();
+                } else {
+                    this.ui.showMultiplayerOptions();
+                }
                 break;
         }
     }
@@ -172,11 +179,21 @@ export class Matchmaker {
         this.connect();
         this.inQueue = true;
         this.send({ type: 'FIND_MATCH', peerId: this.peerId, meta });
+
+        if (this.searchTimeout) clearTimeout(this.searchTimeout);
+        this.searchTimeout = setTimeout(() => {
+            if (this.inQueue) {
+                console.log('[Matchmaker] Search timeout reached. Falling back to local match.');
+                this.inQueue = false;
+                if (this.onMatchmakingFailed) this.onMatchmakingFailed();
+            }
+        }, 10000); // 10 second timeout for server sleep or no players
     }
 
     cancelMatch() {
         if (!this.inQueue) return;
         this.inQueue = false;
+        if (this.searchTimeout) clearTimeout(this.searchTimeout);
         this.send({ type: 'CANCEL_MATCH', peerId: this.peerId });
     }
 }

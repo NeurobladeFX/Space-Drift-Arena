@@ -3,8 +3,9 @@ import { generateId, applyFriction, capSpeed, bounceOffWalls } from './physics.j
 import { Projectile } from './Projectile.js';
 
 export class Player {
-    constructor(x, y, isBot = false) {
+    constructor(x, y, isBot = false, soundManager = null) {
         this.id = generateId();
+        this.soundManager = soundManager;
         this.x = x;
         this.y = y;
         this.vx = 0;
@@ -57,6 +58,9 @@ export class Player {
         this.weaponSpriteLoaded = {};
         this.weaponSpriteWidth = 40; // Bigger weapon size
         this.weaponSpriteHeight = 30;
+
+        // Spawn lock timer (seconds) - prevents movement immediately after respawn
+        this.spawnLockTimer = 0;
 
         // Load character sprite (for both players and bots)
         console.log('🔄 [Player] Creating player - isBot:', isBot, 'Player ID:', this.id);
@@ -128,6 +132,32 @@ export class Player {
             return;
         }
 
+        // Spawn-lock handling: keep player in spawn block and prevent movement
+        if (this.spawnLockTimer > 0) {
+            this.spawnLockTimer -= deltaTime;
+            // zero velocity to keep player in place
+            this.vx = 0;
+            this.vy = 0;
+
+            // If mapRef exists and level has spawnArea, clamp position inside it
+            try {
+                if (this.mapRef && this.mapRef.currentLevel && this.mapRef.currentLevel.spawnArea) {
+                    const area = this.mapRef.currentLevel.spawnArea;
+                    const minX = area.x * this.mapRef.width;
+                    const minY = area.y * this.mapRef.height;
+                    const maxX = (area.x + area.w) * this.mapRef.width;
+                    const maxY = (area.y + area.h) * this.mapRef.height;
+                    if (this.x < minX) this.x = minX + this.radius + 2;
+                    if (this.x > maxX) this.x = maxX - this.radius - 2;
+                    if (this.y < minY) this.y = minY + this.radius + 2;
+                    if (this.y > maxY) this.y = maxY - this.radius - 2;
+                }
+            } catch (e) {
+                // non-fatal
+            }
+            // Allow aiming while locked
+        }
+
         // REMOTE PLAYER INTERPOLATION
         if (this.isRemote) {
             const lerpSpeed = 20; // Increased from 15 to 20 for even more responsive interpolation
@@ -149,7 +179,7 @@ export class Player {
 
                 this.angle += diff * lerpSpeed * deltaTime;
             }
-            
+
             // Gradually reduce velocity for smoother stopping
             this.vx *= 0.9;
             this.vy *= 0.9;
@@ -291,6 +321,11 @@ export class Player {
         this.respawnTimer = GAME_CONFIG.RESPAWN_TIME;
         this.vx = 0;
         this.vy = 0;
+
+        // Play death sound
+        if (this.soundManager) {
+            this.soundManager.play('die', 0.5);
+        }
     }
 
     respawn() {
@@ -316,6 +351,17 @@ export class Player {
             Laser: 0,
             plasma_canon: 0
         };
+        // Lock player in spawn block after respawn
+        this.spawnLockTimer = GAME_CONFIG.SPAWN_LOCK_TIME;
+
+        // If an external respawn handler is provided (game instance), call it to position the player
+        try {
+            if (typeof this.onRespawn === 'function') {
+                this.onRespawn();
+            }
+        } catch (e) {
+            console.warn('[Player] onRespawn handler failed', e);
+        }
     }
 
     setWeapon(weaponId, giveFullAmmo = false) {
@@ -370,7 +416,7 @@ export class Player {
 
         ctx.save();
         ctx.translate(screenX, screenY);
-        
+
         // Premium character aura effect
         if (this.aura && !this.isBot) {
             const time = Date.now() / 1000;

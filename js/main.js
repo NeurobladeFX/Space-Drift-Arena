@@ -1056,12 +1056,9 @@ class Game {
         }
 
         // Check win/lose conditions (Game over on death)
-        if (this.player && !this.player.alive) {
-            // Wait 1.5 seconds after death before showing the leaderboard/results
-            if (this.player.respawnTimer <= 1.5) {
-                this.endGame(false);
-            }
-        }
+        // Wait, the user wants the game to continue until time is over.
+        // So we do NOT end the game when the player dies.
+
     }
 
     render() {
@@ -1173,7 +1170,52 @@ class Game {
         this.ctx.textBaseline = 'middle';
 
         const timeLeft = Math.ceil(player.respawnTimer);
-        this.ctx.fillText('Respawning in ' + timeLeft, screenPos.x, screenPos.y);
+        this.ctx.fillText('Respawning in ' + timeLeft, screenPos.x, screenPos.y - 50);
+
+        // Render In-Game Leaderboard while dead
+        this.ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+        this.ctx.fillRect(screenPos.x - 150, screenPos.y, 300, 200);
+        this.ctx.strokeStyle = '#00F0FF';
+        this.ctx.lineWidth = 2;
+        this.ctx.strokeRect(screenPos.x - 150, screenPos.y, 300, 200);
+
+        this.ctx.fillStyle = '#00F0FF';
+        this.ctx.font = 'bold 20px Arial';
+        this.ctx.fillText('LEADERBOARD', screenPos.x, screenPos.y + 30);
+
+        // Collect all players
+        const allPlayers = [];
+        if (this.player) allPlayers.push({ name: this.player.name || 'You', kills: this.player.kills });
+        for (let bot of this.bots) {
+            if (bot) allPlayers.push({ name: bot.name || 'Bot', kills: bot.kills });
+        }
+        for (let peerId in this.remotePlayers) {
+            const rp = this.remotePlayers[peerId];
+            if (rp) allPlayers.push({ name: rp.name || 'Player', kills: rp.kills });
+        }
+
+        // Sort by kills
+        allPlayers.sort((a, b) => b.kills - a.kills);
+
+        // Draw top 4
+        this.ctx.font = '16px Arial';
+        this.ctx.textAlign = 'left';
+        for (let i = 0; i < Math.min(4, allPlayers.length); i++) {
+            const p = allPlayers[i];
+            const yOffset = screenPos.y + 70 + (i * 30);
+            
+            // Highlight player
+            if (p.name === (this.player.name || 'You')) {
+                this.ctx.fillStyle = '#FFD700';
+            } else {
+                this.ctx.fillStyle = '#FFFFFF';
+            }
+            
+            this.ctx.fillText(`${i + 1}. ${p.name}`, screenPos.x - 130, yOffset);
+            this.ctx.textAlign = 'right';
+            this.ctx.fillText(`${p.kills} Kills`, screenPos.x + 130, yOffset);
+            this.ctx.textAlign = 'left';
+        }
 
         this.ctx.restore();
     }
@@ -1457,7 +1499,7 @@ class Game {
                 if (statusEl) statusEl.textContent = 'Match starting!';
                 setTimeout(() => {
                     this.gameMode = 'single';
-                    this.initializeGame({ levelId: this.ui.getSelectedLevel() || 'neon_void', duration: 180 });
+                    this.initializeGame({ levelId: this.ui.getSelectedLevel() || 'neon_void', duration: 120 });
                 }, 1000);
                 return;
             }

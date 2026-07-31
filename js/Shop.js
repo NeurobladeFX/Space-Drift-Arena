@@ -199,13 +199,19 @@ export class Shop {
     loadProfile() {
         const saved = localStorage.getItem('spaceDrift_profile');
         if (saved) {
-            return JSON.parse(saved);
+            const profile = JSON.parse(saved);
+            // Upgrade old profiles with no avatar
+            if (!profile.avatar) {
+                profile.avatar = 'assets/ui/avatar_robot.png';
+                // We don't save immediately to avoid endless loops, but it will be saved next time stats update
+            }
+            return profile;
         }
 
         return {
             name: 'Player',
             level: 1,
-            avatar: null,
+            avatar: 'assets/ui/avatar_robot.png',
             lockName: false,
             xp: 0,
             xpToNext: 100,

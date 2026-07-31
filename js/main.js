@@ -161,9 +161,10 @@ class Game {
             }
         };
         this.ui.onStartMatchClick = () => {
-            const isRandom = this.multiplayer.isRandomMatch;
-            const duration = isRandom ? 240 : (this.ui.getMatchDuration() || 300); // Duration is already in seconds from UI
-            const levelId = this.ui.getSelectedLevel();
+            if (!this.multiplayer.isHost) return;
+            const isRandom = this.ui.currentRoomCode === 'RANDOM';
+            const duration = isRandom ? 120 : (this.ui.getMatchDuration() || 300); // 2 minutes for random, or custom for friend matches
+            const levelId = this.ui.getSelectedLevel() || 'neon_void';
             console.log('Starting match with duration:', duration, 's, Level:', levelId);
             this.multiplayer.startGame({ duration, levelId });
         };

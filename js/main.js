@@ -1051,10 +1051,12 @@ class Game {
             });
         }
 
-        // Check win/lose conditions
-        if (this.player && !this.player.alive && this.player.respawnTimer <= 0) {
-            // Player died and won't respawn
-            this.endGame(false);
+        // Check win/lose conditions (Game over on death)
+        if (this.player && !this.player.alive) {
+            // Wait 1.5 seconds after death before showing the leaderboard/results
+            if (this.player.respawnTimer <= 1.5) {
+                this.endGame(false);
+            }
         }
     }
 

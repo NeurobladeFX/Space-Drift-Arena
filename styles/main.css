@@ -200,14 +200,17 @@ body {
 }
 
 .menu-container {
-    background: rgba(5, 15, 8, 0.98);
-    /* Much darker - almost black */
-    backdrop-filter: blur(20px);
-    border: 2px solid rgba(0, 100, 50, 0.6);
-    /* Darker border */
-    border-radius: 20px;
-    box-shadow: 0 0 80px rgba(0, 100, 50, 0.4),
-        inset 0 0 40px rgba(0, 100, 50, 0.3);
+    background: rgba(4, 8, 16, 0.92);
+    /* Deep space dark blue */
+    backdrop-filter: blur(25px);
+    -webkit-backdrop-filter: blur(25px);
+    border: 1px solid rgba(0, 240, 255, 0.2);
+    border-top: 1px solid rgba(0, 240, 255, 0.4);
+    /* Premium glass highlight */
+    border-radius: 24px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5),
+        inset 0 0 80px rgba(0, 240, 255, 0.05),
+        0 0 20px rgba(0, 240, 255, 0.1);
     padding: 50px 60px;
     max-width: 600px;
     width: 90%;
@@ -1429,11 +1432,16 @@ body {
 }
 
 .profile-avatar {
-    font-size: 80px;
-    background: rgba(255, 255, 255, 0.05);
-    padding: 20px;
+    width: 120px;
+    height: 120px;
+    background: rgba(0, 240, 255, 0.05);
+    padding: 5px;
     border-radius: 50%;
-    border: 2px solid #00F0FF;
+    border: 3px solid #00F0FF;
+    box-shadow: 0 0 20px rgba(0, 240, 255, 0.4), inset 0 0 10px rgba(0, 240, 255, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .profile-info h3 {

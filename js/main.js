@@ -1456,8 +1456,8 @@ class Game {
         const grid = document.getElementById('lobbyPlayersGrid');
         
         // Add 3-5 bots progressively
-        const botNames = ['Alpha', 'Bravo', 'Charlie', 'Delta', 'Echo', 'Foxtrot'];
-        const botAvatars = ['🤖', '👽', '👾', '👻', '🎃', '💀'];
+        const botNames = ['Alpha', 'Beta', 'Gamma', 'Delta', 'Echo', 'Zeta', 'Omega', 'Prime', 'Apex'];
+        const avatarFiles = ['robot', 'alien', 'synth', 'marine', 'pilot', 'cyborg', 'bounty_hunter'];
         
         const numBots = Math.floor(Math.random() * 3) + 3; // 3 to 5 bots
         let currentBot = 0;
@@ -1475,12 +1475,12 @@ class Game {
             
             if (grid) {
                 const botName = botNames[Math.floor(Math.random() * botNames.length)] + '_' + Math.floor(Math.random() * 99);
-                const botAvatar = botAvatars[Math.floor(Math.random() * botAvatars.length)];
+                const botAvatarFile = avatarFiles[Math.floor(Math.random() * avatarFiles.length)];
                 
                 const botCard = document.createElement('div');
                 botCard.className = 'lobby-player-card';
                 botCard.innerHTML = `
-                    <div class="lobby-player-avatar">${botAvatar}</div>
+                    <div class="lobby-player-avatar"><img src="assets/ui/avatar_${botAvatarFile}.png" style="width:100%;height:100%;border-radius:50%;object-fit:cover;"></div>
                     <div class="lobby-player-name">${botName}</div>
                     <div class="lobby-player-status">Ready</div>
                 `;

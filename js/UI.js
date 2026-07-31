@@ -187,10 +187,10 @@ export class UI {
                 const reader = new FileReader();
                 reader.onload = () => {
                     const dataUrl = reader.result;
-                    if (this.onSaveProfileAvatar) this.onSaveProfileAvatar(dataUrl);
-                    // show preview
-                    const preview = document.getElementById('avatarPreview');
-                    if (preview) preview.innerHTML = `<img src="${dataUrl}" style="width:64px;height:64px;border-radius:8px;">`;
+                    if (this.onSaveProfileAvatar) {
+                        this.onSaveProfileAvatar(reader.result);
+                        this.updateProfileDisplay();
+                    }
                 };
                 reader.readAsDataURL(file);
             });
@@ -201,11 +201,10 @@ export class UI {
         presetAvatars.forEach(avatarEl => {
             avatarEl.addEventListener('click', (e) => {
                 const avatarUrl = e.target.getAttribute('data-avatar');
-                if (this.onSaveProfileAvatar) this.onSaveProfileAvatar(avatarUrl);
-                
-                // Show preview
-                const preview = document.getElementById('avatarPreview');
-                if (preview) preview.innerHTML = `<img src="${avatarUrl}" style="width:64px;height:64px;border-radius:8px;object-fit:cover;">`;
+                if (this.onSaveProfileAvatar) {
+                    this.onSaveProfileAvatar(avatarUrl);
+                    this.updateProfileDisplay();
+                }
                 
                 // Add active state styling
                 presetAvatars.forEach(el => el.classList.remove('active'));
@@ -342,8 +341,6 @@ export class UI {
             const lock = state && state.lockName;
             const avatar = state && state.avatar;
             this.setProfileLocked(Boolean(lock));
-            const preview = document.getElementById('avatarPreview');
-            if (preview) preview.innerHTML = avatar ? `<img src="${avatar}" style="width:64px;height:64px;border-radius:8px;">` : '';
 
             // Also update main menu profile icon if available
             const menuProfileIcon = document.querySelector('.main-menu-profile .profile-image');

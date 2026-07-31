@@ -651,6 +651,10 @@ class Game {
                 ];
                 bot.name = botNames[Math.floor(Math.random() * botNames.length)];
 
+                // Assign random avatar
+                const botAvatars = ['assets/ui/avatar_robot.png', 'assets/ui/avatar_alien.png', 'assets/ui/avatar_synth.png', 'assets/ui/avatar_marine.png'];
+                bot.avatar = botAvatars[Math.floor(Math.random() * botAvatars.length)];
+
                 this.bots.push(bot);
 
                 // Create BotAI for each bot
@@ -1594,7 +1598,8 @@ class Game {
             allPlayers.push({
                 name: this.player.name || 'Player',
                 kills: this.player.kills || 0,
-                deaths: this.player.deaths || 0
+                deaths: this.player.deaths || 0,
+                avatar: this.player.avatar || (this.shop ? this.shop.getProfile().avatar : null)
             });
         }
 
@@ -1606,7 +1611,8 @@ class Game {
                     allPlayers.push({
                         name: p.name || 'Player',
                         kills: p.kills || 0,
-                        deaths: p.deaths || 0
+                        deaths: p.deaths || 0,
+                        avatar: p.avatar
                     });
                 }
             }
@@ -1616,9 +1622,10 @@ class Game {
         for (let bot of this.bots) {
             if (bot) {
                 allPlayers.push({
-                    name: 'Bot',
+                    name: bot.name || 'Bot',
                     kills: bot.kills || 0,
-                    deaths: bot.deaths || 0
+                    deaths: bot.deaths || 0,
+                    avatar: bot.avatar
                 });
             }
         }

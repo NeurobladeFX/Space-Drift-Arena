@@ -196,6 +196,23 @@ export class UI {
             });
         }
 
+        // Preset avatar selection
+        const presetAvatars = document.querySelectorAll('.preset-avatar');
+        presetAvatars.forEach(avatarEl => {
+            avatarEl.addEventListener('click', (e) => {
+                const avatarUrl = e.target.getAttribute('data-avatar');
+                if (this.onSaveProfileAvatar) this.onSaveProfileAvatar(avatarUrl);
+                
+                // Show preview
+                const preview = document.getElementById('avatarPreview');
+                if (preview) preview.innerHTML = `<img src="${avatarUrl}" style="width:64px;height:64px;border-radius:8px;object-fit:cover;">`;
+                
+                // Add active state styling
+                presetAvatars.forEach(el => el.classList.remove('active'));
+                e.target.classList.add('active');
+            });
+        });
+
         // Results
         document.getElementById('playAgainBtn').addEventListener('click', () => {
             this.showModeSelection();
@@ -396,8 +413,12 @@ export class UI {
                         entry.classList.add('winner');
                     }
 
+                    const avatarSrc = p.avatar || 'assets/ui/avatar_robot.png';
+                    const avatarHtml = avatarSrc.length > 5 ? `<img src="${avatarSrc}" class="leaderboard-avatar" alt="avatar">` : `<span class="leaderboard-avatar-text">${avatarSrc}</span>`;
+
                     entry.innerHTML = `
                         <div class="leaderboard-rank">${index + 1}</div>
+                        <div class="leaderboard-avatar-wrapper">${avatarHtml}</div>
                         <div class="leaderboard-name">${p.name || 'Player'}</div>
                         <div class="leaderboard-kills">${p.kills || 0}</div>
                     `;

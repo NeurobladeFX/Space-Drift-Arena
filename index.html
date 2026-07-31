@@ -140,6 +140,13 @@
                         <p>Reduce enemy HP to zero to win</p>
                     </div>
                 </div>
+                <div class="instruction-item">
+                    <div class="instruction-icon">🔄</div>
+                    <div class="instruction-text">
+                        <h3>SWITCH WEAPON</h3>
+                        <p>Press SPACEBAR to switch weapons</p>
+                    </div>
+                </div>
             </div>
             <button id="backBtn" class="btn btn-secondary">← BACK</button>
         </div>
@@ -274,14 +281,23 @@
 
     <!-- Random Match Screen -->
     <div id="randomMatchScreen" class="screen">
-        <div class="menu-container">
-            <h2>FINDING MATCH...</h2>
-            <div class="loading-spinner">
-                <div class="spinner"></div>
+        <div class="menu-container random-lobby-container">
+            <h2>MATCHMAKING LOBBY</h2>
+            
+            <div class="lobby-status-header">
+                <div class="loading-spinner">
+                    <div class="spinner"></div>
+                </div>
+                <p id="matchStatus">Searching for opponents...</p>
             </div>
-            <p id="matchStatus">Searching for opponents...</p>
-            <p style="font-size: 14px; color: #A0A8C0; margin-top: 16px;">Please wait</p>
-            <button id="cancelMatchBtn" class="btn btn-secondary" style="margin-top: 20px;">CANCEL</button>
+
+            <!-- Mini-Militia Style Lobby Grid -->
+            <div class="lobby-players-grid" id="lobbyPlayersGrid">
+                <!-- Players and bots will be inserted here dynamically -->
+            </div>
+
+            <p class="lobby-tip">Tip: Press SPACEBAR to switch between your primary weapon and pistol!</p>
+            <button id="cancelMatchBtn" class="btn btn-secondary" style="margin-top: 10px;">CANCEL</button>
         </div>
     </div>
 

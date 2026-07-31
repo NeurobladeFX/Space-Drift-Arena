@@ -52,13 +52,7 @@ class Game {
 
         this.matchmaker.onMatchmakingFailed = () => {
             console.log('[Main] Matchmaking failed or timed out. Starting Bot Fallback match.');
-            const statusEl = document.getElementById('matchStatus');
-            if (statusEl) statusEl.textContent = 'No players found. Starting Bot Match...';
-            
-            setTimeout(() => {
-                this.gameMode = 'single';
-                this.initializeGame({ levelId: this.ui.getSelectedLevel() || 'neon_void', duration: 180 });
-            }, 1500);
+            this.simulateBotLobby();
         };
 
         // Connect matchmaker socket early (needed for server-mediated rooms)
@@ -1404,20 +1398,79 @@ class Game {
 
     // Placeholder for random match finding
     findRandomMatch() {
-        // For now, just show the random match screen
+        // Show the random match screen and setup local player card
         this.ui.showRandomMatch();
+        this.setupLobbyGrid();
+
         // Use Matchmaker to find a match
         if (this.matchmaker) {
             const profile = this.shop.getProfile();
             this.matchmaker.findMatch({ mode: 'battle_royale', name: profile.name });
             document.getElementById('matchStatus').textContent = 'Searching for opponents...';
         } else {
-            document.getElementById('matchStatus').textContent = 'Matchmaker unavailable. Starting Bot Match...';
-            setTimeout(() => {
-                this.gameMode = 'single';
-                this.initializeGame({ levelId: this.ui.getSelectedLevel() || 'neon_void', duration: 180 });
-            }, 1500);
+            console.log('[Main] Matchmaker unavailable. Simulating bot lobby.');
+            this.simulateBotLobby();
         }
+    }
+
+    setupLobbyGrid() {
+        const grid = document.getElementById('lobbyPlayersGrid');
+        if (!grid) return;
+        grid.innerHTML = '';
+        
+        const profile = this.shop.getProfile();
+        const avatar = profile.avatar ? `<img src="${profile.avatar}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">` : '👤';
+        
+        const localCard = document.createElement('div');
+        localCard.className = 'lobby-player-card is-local';
+        localCard.innerHTML = `
+            <div class="lobby-player-avatar">${avatar}</div>
+            <div class="lobby-player-name">${profile.name || 'Player'}</div>
+            <div class="lobby-player-status">Waiting...</div>
+        `;
+        grid.appendChild(localCard);
+    }
+
+    simulateBotLobby() {
+        const statusEl = document.getElementById('matchStatus');
+        if (statusEl) statusEl.textContent = 'Simulating Bot Players...';
+        
+        const grid = document.getElementById('lobbyPlayersGrid');
+        
+        // Add 3-5 bots progressively
+        const botNames = ['Alpha', 'Bravo', 'Charlie', 'Delta', 'Echo', 'Foxtrot'];
+        const botAvatars = ['🤖', '👽', '👾', '👻', '🎃', '💀'];
+        
+        const numBots = Math.floor(Math.random() * 3) + 3; // 3 to 5 bots
+        let currentBot = 0;
+        
+        const addBotInterval = setInterval(() => {
+            if (currentBot >= numBots) {
+                clearInterval(addBotInterval);
+                if (statusEl) statusEl.textContent = 'Match starting!';
+                setTimeout(() => {
+                    this.gameMode = 'single';
+                    this.initializeGame({ levelId: this.ui.getSelectedLevel() || 'neon_void', duration: 180 });
+                }, 1000);
+                return;
+            }
+            
+            if (grid) {
+                const botName = botNames[Math.floor(Math.random() * botNames.length)] + '_' + Math.floor(Math.random() * 99);
+                const botAvatar = botAvatars[Math.floor(Math.random() * botAvatars.length)];
+                
+                const botCard = document.createElement('div');
+                botCard.className = 'lobby-player-card';
+                botCard.innerHTML = `
+                    <div class="lobby-player-avatar">${botAvatar}</div>
+                    <div class="lobby-player-name">${botName}</div>
+                    <div class="lobby-player-status">Ready</div>
+                `;
+                grid.appendChild(botCard);
+            }
+            
+            currentBot++;
+        }, 800); // 0.8 seconds per bot
     }
 
     endGameByTime() {

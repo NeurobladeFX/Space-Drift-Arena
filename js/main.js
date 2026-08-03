@@ -108,23 +108,15 @@ class Game {
             console.log(`Starting game in ${mode} mode`);
             this.gameMode = mode;
             if (mode === 'single') {
-                const profile = this.shop.getProfile();
-                this.ui.renderLevelSelection(LEVELS, profile.playerLevel || 1);
-                this.ui.showLevelSelection();
+                const maps = ['jungle_ruins', 'neon_void_minimilitia'];
+                const randomLevelId = maps[Math.floor(Math.random() * maps.length)];
+                this.initializeGame({ levelId: randomLevelId });
             } else {
                 this.ui.showMultiplayerOptions();
             }
         };
 
-        this.ui.onLevelConfirm = (levelId) => {
-            this.initializeGame({ levelId });
-        };
 
-        this.ui.onHostChangeLevel = () => {
-            const profile = this.shop.getProfile();
-            this.ui.renderLevelSelection(LEVELS, profile.playerLevel || 1);
-            this.ui.showLevelSelection();
-        };
         this.ui.onHostClick = async () => {
             try {
                 this.gameMode = 'multiplayer';
@@ -168,7 +160,8 @@ class Game {
             if (!this.multiplayer.isHost) return;
             const isRandom = this.ui.currentRoomCode === 'RANDOM';
             const duration = isRandom ? 120 : (this.ui.getMatchDuration() || 300); // 2 minutes for random, or custom for friend matches
-            const levelId = this.ui.getSelectedLevel() || 'neon_void';
+            const maps = ['jungle_ruins', 'neon_void_minimilitia'];
+            const levelId = maps[Math.floor(Math.random() * maps.length)];
             console.log('Starting match with duration:', duration, 's, Level:', levelId);
             this.multiplayer.startGame({ duration, levelId });
         };
@@ -1472,7 +1465,9 @@ class Game {
                 if (statusEl) statusEl.textContent = 'Match starting!';
                 setTimeout(() => {
                     this.gameMode = 'single';
-                    this.initializeGame({ levelId: this.ui.getSelectedLevel() || 'neon_void', duration: 120 });
+                    const maps = ['jungle_ruins', 'neon_void_minimilitia'];
+                    const randomLevelId = maps[Math.floor(Math.random() * maps.length)];
+                    this.initializeGame({ levelId: randomLevelId, duration: 120 });
                 }, 1000);
                 return;
             }

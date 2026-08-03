@@ -318,3 +318,107 @@ h2 {
 .geometric-circle { border-color: rgba(255,140,0,0.2) !important; }
 .geometric-square { border-color: rgba(0,255,204,0.15) !important; }
 .geometric-triangle { border-bottom-color: rgba(255,60,0,0.15) !important; }
+
+/* Avatar Interaction */
+.profile-avatar {
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border-radius: 50%;
+    border: 2px solid var(--primary-color);
+}
+.profile-avatar:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 20px rgba(255,140,0,0.8);
+}
+.preset-avatar {
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 2px solid transparent;
+    border-radius: 50%;
+    width: 60px;
+    height: 60px;
+}
+.preset-avatar:hover {
+    transform: scale(1.1);
+    border-color: var(--accent-color);
+}
+.preset-avatar.active {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 15px var(--primary-glow);
+}
+
+/* Waiting Screens - Shiny Black Div */
+#randomMatchScreen .random-lobby-container,
+#hostLobbyScreen .menu-container,
+#joinGameScreen .menu-container {
+    background: linear-gradient(145deg, #050505 0%, #1a1a1a 100%) !important;
+    border: 1px solid #333 !important;
+    box-shadow: 0 0 30px rgba(0,0,0,0.9), inset 0 0 20px rgba(255,255,255,0.02) !important;
+    position: relative;
+    overflow: hidden;
+}
+
+#randomMatchScreen .random-lobby-container::before,
+#hostLobbyScreen .menu-container::before,
+#joinGameScreen .menu-container::before {
+    content: '';
+    position: absolute;
+    top: -50%; left: -50%;
+    width: 200%; height: 200%;
+    background: linear-gradient(to right, rgba(255,255,255,0) 0%, rgba(255,255,255,0.03) 50%, rgba(255,255,255,0) 100%);
+    transform: rotate(30deg);
+    animation: shineBlack 6s infinite;
+    pointer-events: none;
+    z-index: 1;
+    display: block !important;
+}
+
+@keyframes shineBlack {
+    0% { transform: translateX(-100%) rotate(30deg); }
+    20% { transform: translateX(100%) rotate(30deg); }
+    100% { transform: translateX(100%) rotate(30deg); }
+}
+
+/* Fix scrolling overflow for Profile Screen */
+#profileScreen .menu-container {
+    max-height: 85vh !important;
+    display: flex !important;
+    flex-direction: column !important;
+}
+
+.profile-content-wrapper {
+    flex: 1 !important;
+    height: auto !important;
+    overflow-y: auto !important;
+    padding-right: 15px !important;
+}
+
+/* Hide scrollbar visually but keep functionality for Profile */
+.profile-content-wrapper::-webkit-scrollbar {
+    display: none;
+}
+.profile-content-wrapper {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+/* Profile Back Button Refinement */
+#backToMainFromProfile {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    padding: 8px 16px !important;
+    font-size: 12px !important;
+    background: rgba(0, 0, 0, 0.5) !important;
+    border: 1px solid var(--border-color) !important;
+    color: var(--text-muted) !important;
+    box-shadow: none !important;
+    z-index: 10;
+    transform: none !important;
+}
+#backToMainFromProfile:hover {
+    border-color: var(--primary-color) !important;
+    color: var(--primary-color) !important;
+    box-shadow: 0 0 15px var(--primary-glow) !important;
+    transform: translateY(-2px) !important;
+}

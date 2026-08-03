@@ -16,7 +16,6 @@ export class UI {
         this.gameCanvas = document.getElementById('gameCanvas');
         this.gameHUD = document.getElementById('gameHUD');
         this.resultsScreen = document.getElementById('resultsScreen');
-        this.levelSelectionScreen = document.getElementById('levelSelectionScreen');
 
         // HUD elements
         this.healthBar = document.getElementById('healthBar');
@@ -178,6 +177,29 @@ export class UI {
             });
         }
 
+        // Avatar selection toggle
+        const profileAvatarBtn = document.querySelector('#profileScreen .profile-avatar');
+        if (profileAvatarBtn) {
+            profileAvatarBtn.style.cursor = 'pointer';
+            profileAvatarBtn.addEventListener('click', () => {
+                const container = document.getElementById('avatarSelectionContainer');
+                if (container) {
+                    container.style.display = 'flex';
+                }
+            });
+        }
+        
+        // Close avatar modal
+        const closeAvatarBtn = document.getElementById('closeAvatarModalBtn');
+        if (closeAvatarBtn) {
+            closeAvatarBtn.addEventListener('click', () => {
+                const container = document.getElementById('avatarSelectionContainer');
+                if (container) {
+                    container.style.display = 'none';
+                }
+            });
+        }
+
         // Avatar upload
         const avatarInput = document.getElementById('avatarUploadInput');
         if (avatarInput) {
@@ -209,6 +231,10 @@ export class UI {
                 // Add active state styling
                 presetAvatars.forEach(el => el.classList.remove('active'));
                 e.target.classList.add('active');
+                
+                // Automatically close the modal after selection
+                const container = document.getElementById('avatarSelectionContainer');
+                if (container) container.style.display = 'none';
             });
         });
 
@@ -221,33 +247,7 @@ export class UI {
             this.showMainMenu();
         });
 
-        // Level selection
-        const levelConfirmBtn = document.getElementById('levelConfirmBtn');
-        if (levelConfirmBtn) {
-            levelConfirmBtn.addEventListener('click', () => {
-                if (this.onLevelConfirm) this.onLevelConfirm(this.getSelectedLevel());
-            });
-        }
 
-        const levelBackBtn = document.getElementById('backToModeBtnFromLevel');
-        if (levelBackBtn) {
-            levelBackBtn.addEventListener('click', () => {
-                // If coming from lobby, go back to lobby, else mode selection
-                if (this.levelSelectionSource === 'lobby') {
-                    this.showHostLobby(this.currentRoomCode);
-                } else {
-                    this.showModeSelection();
-                }
-            });
-        }
-
-        const hostChangeLevelBtn = document.getElementById('hostChangeLevelBtn');
-        if (hostChangeLevelBtn) {
-            hostChangeLevelBtn.addEventListener('click', () => {
-                this.levelSelectionSource = 'lobby';
-                if (this.onHostChangeLevel) this.onHostChangeLevel();
-            });
-        }
     }
 
     showMainMenu() {
@@ -449,7 +449,6 @@ export class UI {
         this.gameCanvas.classList.remove('active');
         this.gameHUD.classList.remove('active');
         this.resultsScreen.classList.remove('active');
-        this.levelSelectionScreen.classList.remove('active');
 
         // Also hide in-game profile
         const inGameProfile = document.getElementById('inGameProfile');
@@ -730,71 +729,7 @@ export class UI {
         return parseInt(select.value);
     }
 
-    showLevelSelection() {
-        this.hideAll();
-        if (this.levelSelectionScreen) this.levelSelectionScreen.classList.add('active');
-    }
 
-    renderLevelSelection(levels, playerLevel, onSelect) {
-        const container = document.getElementById('levelSelectionGrid');
-        if (!container) return;
-
-        container.innerHTML = '';
-        levels.forEach(level => {
-            // Force all levels to be unlocked for testing
-            const isLocked = false;
-            const card = document.createElement('div');
-            card.className = `level-card ${isLocked ? 'locked' : ''} ${this.selectedLevelId === level.id ? 'active' : ''}`;
-
-            // Use thumbnail if available; fallback to simple arena placeholder
-            const thumbPath = `assets/backgrounds/thumb_${level.id}.png`;
-            // Spawn area overlay (if level defines spawnArea as {x,y,w,h} fractions)
-            let spawnOverlayHtml = '';
-            if (level.spawnArea) {
-                const sx = Math.round(level.spawnArea.x * 100);
-                const sy = Math.round(level.spawnArea.y * 100);
-                const sw = Math.round(level.spawnArea.w * 100);
-                const sh = Math.round(level.spawnArea.h * 100);
-                spawnOverlayHtml = `<div class="spawn-overlay" style="position:absolute;left:${sx}%;top:${sy}%;width:${sw}%;height:${sh}%;border:2px dashed rgba(0,255,255,0.9);box-sizing:border-box;pointer-events:none;border-radius:4px;">` +
-                    `</div>`;
-            }
-
-            card.innerHTML = `
-                <div class="level-preview" style="position:relative;overflow:hidden;">
-                    <img src="${thumbPath}" alt="${level.name}" class="level-image" onerror="this.src='assets/backgrounds/thumb_neon_void.png';">
-                    ${spawnOverlayHtml}
-                    ${isLocked ? '<div class="level-lock-overlay"><div class="lock-icon">🔒</div><div class="unlock-text">Lvl ' + level.minLevel + '</div></div>' : ''}
-                    ${level.minLevel >= 7 ? '<div class="premium-badge">💎 LEGENDARY</div>' : ''}
-                </div>
-                <div class="level-info">
-                    <div class="level-header">
-                        <h4>${level.name}</h4>
-                        <span class="level-badge">${isLocked ? 'LOCKED' : 'AVAILABLE'}</span>
-                    </div>
-                    <p>${isLocked ? `Required Rank: Level ${level.minLevel}` : level.description}</p>
-                </div>
-            `;
-
-            if (!isLocked) {
-                card.onclick = () => {
-                    this.selectedLevelId = level.id;
-                    if (typeof onSelect === 'function') onSelect(level.id);
-                    container.querySelectorAll('.level-card').forEach(c => c.classList.remove('active'));
-                    card.classList.add('active');
-                };
-            }
-
-            container.appendChild(card);
-        });
-
-        if (!this.selectedLevelId && levels.length > 0) {
-            this.selectedLevelId = levels[0].id;
-        }
-    }
-
-    getSelectedLevel() {
-        return this.selectedLevelId || 'neon_void';
-    }
 
     showRespawnOverlay(timeLeft, allPlayers, localPlayerName) {
         const overlay = document.getElementById('respawnOverlay');

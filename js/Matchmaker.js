@@ -115,17 +115,17 @@ export class Matchmaker {
 
             case 'MATCH_FOUND':
                 if (this.searchTimeout) clearTimeout(this.searchTimeout);
-                console.log('[Matchmaker] Match found, connecting to host', msg.hostId);
-                // join host's peer id
+                console.log('[Matchmaker] Match found, connecting to room', msg.roomId);
+                // join host's room
                 (async () => {
                     try {
-                        await this.multiplayer.joinGame(msg.hostId);
+                        await this.multiplayer.joinGame(msg.roomId);
                         // CRITICAL: Check if game already started before showing lobby
                         if (this.multiplayer.game && this.multiplayer.game.gameState === 'playing') {
                             console.log('[Matchmaker] Game already started, skipping lobby view');
                             return;
                         }
-                        this.ui.showHostLobby(msg.hostId);
+                        this.ui.showHostLobby(msg.roomId);
                     } catch (e) {
                         console.error('Failed to join host from matchmaker', e);
                         this.ui.showJoinError('Failed to join matched host');

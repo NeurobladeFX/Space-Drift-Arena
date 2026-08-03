@@ -523,11 +523,9 @@ export class UI {
                 const gridItem = document.createElement('div');
                 gridItem.className = 'lobby-player-card';
                 gridItem.innerHTML = `
-                    <div class="lobby-avatar">${avatarHtml}</div>
-                    <div class="lobby-player-info">
-                        <div class="lobby-player-name">${player.name}</div>
-                        ${player.isHost ? '<div class="lobby-player-status">👑 HOST</div>' : '<div class="lobby-player-status">READY</div>'}
-                    </div>
+                    <div class="lobby-player-avatar">${avatarHtml}</div>
+                    <div class="lobby-player-name">${player.name}</div>
+                    ${player.isHost ? '<div class="lobby-player-status">👑 HOST</div>' : '<div class="lobby-player-status">READY</div>'}
                 `;
                 randomContainer.appendChild(gridItem);
             }

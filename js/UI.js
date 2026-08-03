@@ -490,22 +490,47 @@ export class UI {
     }
 
     updatePlayerList(players) {
-        const container = document.getElementById('playerListContainer');
-        container.innerHTML = '';
+        // Friend Match Container
+        const friendContainer = document.getElementById('playerListContainer');
+        if (friendContainer) friendContainer.innerHTML = '';
 
-        // Show current count (HTML contains the '/6' suffix)
-        document.getElementById('playerCount').textContent = players.length;
+        // Random Match Container
+        const randomContainer = document.getElementById('lobbyPlayersGrid');
+        if (randomContainer) randomContainer.innerHTML = '';
+
+        // Update player count for friend match
+        const countSpan = document.getElementById('playerCount');
+        if (countSpan) countSpan.textContent = players.length;
 
         players.forEach(player => {
-            const item = document.createElement('div');
-            item.className = 'player-item' + (player.isHost ? ' host' : '');
-            item.innerHTML = `
-                <div class="player-name">
-                    ${player.name}
-                    ${player.isHost ? '<span class="host-badge">👑 HOST</span>' : ''}
-                </div>
-            `;
-            container.appendChild(item);
+            const avatarHtml = player.avatar ? `<img src="${player.avatar}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">` : '👤';
+            
+            // Add to friend container
+            if (friendContainer) {
+                const item = document.createElement('div');
+                item.className = 'player-item' + (player.isHost ? ' host' : '');
+                item.innerHTML = `
+                    <div class="player-name">
+                        ${player.name}
+                        ${player.isHost ? '<span class="host-badge">👑 HOST</span>' : ''}
+                    </div>
+                `;
+                friendContainer.appendChild(item);
+            }
+            
+            // Add to random container
+            if (randomContainer) {
+                const gridItem = document.createElement('div');
+                gridItem.className = 'lobby-player-card';
+                gridItem.innerHTML = `
+                    <div class="lobby-avatar">${avatarHtml}</div>
+                    <div class="lobby-player-info">
+                        <div class="lobby-player-name">${player.name}</div>
+                        ${player.isHost ? '<div class="lobby-player-status">👑 HOST</div>' : '<div class="lobby-player-status">READY</div>'}
+                    </div>
+                `;
+                randomContainer.appendChild(gridItem);
+            }
         });
     }
 

@@ -18,6 +18,11 @@ export class Map {
         this.obstacles = this.generateObstacles();
     }
 
+    _placeholderSVG(label, w = 640, h = 360, bg = '#222', fg = '#fff') {
+        const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='${w}' height='${h}'><rect width='100%' height='100%' fill='${bg}'/><text x='50%' y='50%' fill='${fg}' font-family='Arial' font-size='24' dominant-baseline='middle' text-anchor='middle'>${label}</text></svg>`;
+        return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+    }
+
     // Return a random spawn point (safe) from populated spawnPoints or sample inside spawnArea
     getSpawnPoint() {
         if (this.spawnPoints && this.spawnPoints.length > 0) {
@@ -213,10 +218,7 @@ export class Map {
         };
 
         // Small SVG placeholder generator (returns data URL)
-        const placeholderSVG = (label, w = 640, h = 360, bg = '#222', fg = '#fff') => {
-            const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='${w}' height='${h}'><rect width='100%' height='100%' fill='${bg}'/><text x='50%' y='50%' fill='${fg}' font-family='Arial' font-size='24' dominant-baseline='middle' text-anchor='middle'>${label}</text></svg>`;
-            return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
-        };
+        
 
         if (levelId === 'neon_void_minimilitia') {
             // Neon Void Militia - MiniMilitia style with many big blocks and central tunnel
@@ -421,6 +423,13 @@ export class Map {
         if (levelId === 'space_station' || levelId === 'volcanic_base') {
             // Place a large warning sign (prop) near left
             this.foregroundDecorations.push({ type: 'warning_sign', x: 300, y: this.height - 220, scale: 0.7, rotation: -0.05 });
+        }
+        if (levelId === 'jungle_ruins') {
+            this.foregroundDecorations.push({ type: 'tree_jungle_01', x: 400, y: this.height - 400, scale: 2.0, rotation: 0 });
+            this.foregroundDecorations.push({ type: 'tree_jungle_01', x: 1200, y: this.height - 800, scale: 1.5, rotation: 0.1 });
+            this.foregroundDecorations.push({ type: 'tree_jungle_01', x: 2600, y: this.height - 1200, scale: 2.2, rotation: -0.05 });
+            this.foregroundDecorations.push({ type: 'tree_jungle_01', x: 2000, y: this.height - 200, scale: 1.8, rotation: 0 });
+            this.foregroundDecorations.push({ type: 'tree_jungle_01', x: 800, y: this.height - 1600, scale: 2.5, rotation: 0.08 });
         }
 
         // Void Area (Center hole) - Applies to all using this layout
@@ -1056,7 +1065,7 @@ export class Map {
                     if (idx >= paths.length) {
                         // No file candidates worked — create a simple SVG placeholder data-URL
                         const img = new Image();
-                        img.src = placeholderSVG('platform tile');
+                        img.src = this._placeholderSVG('platform tile');
                         this.obstacleImages['platform_tile_custom'] = img;
                         this.imageLoadingStatus['platform_tile_custom'] = 'loading';
                         img.onload = () => { this.imageLoadingStatus['platform_tile_custom'] = 'loaded'; };
@@ -1119,7 +1128,7 @@ export class Map {
             bgImg.onload = () => { this.imageLoadingStatus[`background_${levelId}`] = 'loaded'; };
             bgImg.onerror = () => {
                 // fallback to simple SVG background so level is playable immediately
-                bgImg.src = placeholderSVG(`background ${levelId}`, this.width, this.height, '#002233', '#88eeff');
+                bgImg.src = this._placeholderSVG(`background ${levelId}`, this.width, this.height, '#002233', '#88eeff');
                 this.imageLoadingStatus[`background_${levelId}`] = 'loading';
                 bgImg.onload = () => { this.imageLoadingStatus[`background_${levelId}`] = 'loaded'; };
             };
@@ -1130,7 +1139,7 @@ export class Map {
             this.imageLoadingStatus[`arena_${levelId}_visual`] = 'loading';
             arenaImg.onload = () => { this.imageLoadingStatus[`arena_${levelId}_visual`] = 'loaded'; };
             arenaImg.onerror = () => {
-                arenaImg.src = placeholderSVG(`arena ${levelId}`, 800, 400, '#113344', '#ffdd88');
+                arenaImg.src = this._placeholderSVG(`arena ${levelId}`, 800, 400, '#113344', '#ffdd88');
                 this.imageLoadingStatus[`arena_${levelId}_visual`] = 'loading';
                 arenaImg.onload = () => { this.imageLoadingStatus[`arena_${levelId}_visual`] = 'loaded'; };
             };
@@ -1143,7 +1152,7 @@ export class Map {
                 this.imageLoadingStatus['block_neon_void_open_01'] = 'loading';
                 blockImg.onload = () => { this.imageLoadingStatus['block_neon_void_open_01'] = 'loaded'; };
                 blockImg.onerror = () => {
-                    blockImg.src = placeholderSVG('neon block', 128, 128, '#002222', '#00ffee');
+                    blockImg.src = this._placeholderSVG('neon block', 128, 128, '#002222', '#00ffee');
                     this.imageLoadingStatus['block_neon_void_open_01'] = 'loading';
                     blockImg.onload = () => { this.imageLoadingStatus['block_neon_void_open_01'] = 'loaded'; };
                 };
@@ -1373,3 +1382,4 @@ export class Map {
         return false;
     }
 }
+

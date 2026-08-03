@@ -1,0 +1,35 @@
+[
+  {
+    "timestamp": 1785765471592,
+    "matchId": "match_1785765471589_6291",
+    "players": [
+      {
+        "playerId": "p_msdafzyt_auni",
+        "name": "Player",
+        "kills": 8,
+        "deaths": 5
+      },
+      {
+        "playerId": "bot_1",
+        "name": "Bot",
+        "kills": 3,
+        "deaths": 8
+      },
+      {
+        "playerId": "bot_2",
+        "name": "Bot",
+        "kills": 9,
+        "deaths": 9
+      },
+      {
+        "playerId": "bot_3",
+        "name": "Bot",
+        "kills": 3,
+        "deaths": 1
+      }
+    ],
+    "winnerId": "p_msdafzyt_auni",
+    "duration": 301,
+    "gameMode": "single"
+  }
+]

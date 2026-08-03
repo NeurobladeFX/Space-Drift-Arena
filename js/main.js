@@ -215,7 +215,7 @@ class Game {
 
         // Multiplayer callbacks
         this.multiplayer.onPlayerUpdate = (players) => {
-            if (this.ui.hostLobbyScreen.classList.contains('active')) {
+            if (this.ui.hostLobbyScreen.classList.contains('active') || this.ui.randomMatchScreen.classList.contains('active')) {
                 this.ui.updatePlayerList(players);
             }
         };

@@ -125,7 +125,6 @@ export class Matchmaker {
                             console.log('[Matchmaker] Game already started, skipping lobby view');
                             return;
                         }
-                        this.ui.showHostLobby(msg.roomId);
                     } catch (e) {
                         console.error('Failed to join host from matchmaker', e);
                         this.ui.showJoinError('Failed to join matched host');

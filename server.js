@@ -357,6 +357,11 @@ wss.on('connection', (ws) => {
 
       // Check if room already exists
       if (rooms.has(data.roomId)) {
+        const existingRoom = rooms.get(data.roomId);
+        if (existingRoom.hostId === data.peerId) {
+            console.log('[Server] Retry for existing room received, resending ACK');
+            return ws.send(JSON.stringify({ type: "HOST_ROOM_ACK", roomId: data.roomId }));
+        }
         console.log('[Server] Room already exists:', data.roomId);
         return send(ws, { type: 'ERROR', message: 'Room already exists' });
       }

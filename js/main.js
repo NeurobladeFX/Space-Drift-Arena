@@ -33,12 +33,16 @@ class Game {
         this.remotePlayers = {};
 
         // Matchmaker (connects to server dynamically based on environment)
-        const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-        // For local development, use ws://localhost:3000
+        const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.hostname.startsWith('192.168.') || window.location.hostname.startsWith('10.');
+        
+        const localWsUrl = `ws://${window.location.hostname}:3000`;
+        const localHttpUrl = `http://${window.location.hostname}:3000`;
+
+        // For local development, use ws://hostname:3000
         // For production deployment on Render, use wss://space-drift-arena.onrender.com (standard port 443)
-        const matchmakerUrl = isLocal ? 'ws://localhost:3000' : 'wss://space-drift-arena.onrender.com';
+        const matchmakerUrl = isLocal ? localWsUrl : 'wss://space-drift-arena.onrender.com';
         // Ensure HTTPS submissions when running on itch.io or any HTTPS host
-        this.serverBase = isLocal ? 'http://localhost:3000' : 'https://space-drift-arena.onrender.com';
+        this.serverBase = isLocal ? localHttpUrl : 'https://space-drift-arena.onrender.com';
         // Diagnostic logging for deployment troubleshooting
         console.log('[Main] Deployment diagnostics:');
         console.log('[Main]  - window.location.hostname:', window.location.hostname);

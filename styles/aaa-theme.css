@@ -1,0 +1,320 @@
+/* AAA Tactical / Battle Royale Theme (Free Fire / Mini Militia Inspired) */
+
+/* Global Variables */
+:root {
+    --bg-dark: #0a0b10;
+    --bg-panel: #14161f;
+    --primary-color: #ff8c00; /* Intense Orange */
+    --primary-glow: rgba(255, 140, 0, 0.6);
+    --secondary-color: #ff3c00; /* Red Orange */
+    --accent-color: #00ffcc; /* Cyan */
+    --text-main: #ffffff;
+    --text-muted: #8b92a5;
+    --border-color: #2a2e40;
+    
+    /* Military / Tech aesthetics */
+    --panel-gradient: linear-gradient(135deg, rgba(20,22,31,0.95) 0%, rgba(10,12,18,0.95) 100%);
+    --carbon-pattern: repeating-linear-gradient(45deg, rgba(0,0,0,0.2) 0, rgba(0,0,0,0.2) 2px, transparent 2px, transparent 4px);
+}
+
+/* Base Overrides */
+body {
+    background: var(--bg-dark);
+    font-family: 'Inter', 'Roboto', 'Segoe UI', sans-serif;
+}
+
+/* Screens */
+.screen {
+    background: radial-gradient(circle at center, #11131a 0%, #050608 100%) !important;
+}
+
+.screen::before {
+    background: var(--carbon-pattern) !important;
+    opacity: 0.3;
+    animation: none !important;
+}
+
+/* Menu Containers (The 'Div Boxes') */
+.menu-container, #modeSelectionScreen .menu-container, #multiplayerOptionsScreen .menu-container, 
+#friendModeScreen .menu-container, #hostLobbyScreen .menu-container, 
+#joinGameScreen .menu-container, #randomMatchScreen .menu-container {
+    background: var(--panel-gradient) !important;
+    border: 2px solid var(--border-color) !important;
+    border-radius: 12px !important; /* Sharper corners */
+    box-shadow: 0 15px 35px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.1) !important;
+    backdrop-filter: blur(10px) !important;
+    position: relative;
+    clip-path: polygon(0 0, 100% 0, 100% calc(100% - 20px), calc(100% - 20px) 100%, 0 100%);
+    animation: slideInHUD 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards !important;
+}
+
+/* High-tech border glow */
+.menu-container::before, #modeSelectionScreen .menu-container::before, #multiplayerOptionsScreen .menu-container::before, 
+#friendModeScreen .menu-container::before, #hostLobbyScreen .menu-container::before, 
+#joinGameScreen .menu-container::before, #randomMatchScreen .menu-container::before {
+    display: none !important; /* Remove the old animated border */
+}
+
+/* Add a tactical top accent */
+.menu-container::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 20px;
+    right: 20px;
+    height: 3px;
+    background: var(--primary-color);
+    box-shadow: 0 0 15px var(--primary-glow);
+    z-index: 10;
+}
+
+/* Typography Overrides */
+.logo h1 {
+    font-size: 64px !important;
+    background: linear-gradient(to bottom, #ffffff, #dcdcdc) !important;
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+    text-shadow: 0 5px 15px rgba(0,0,0,0.8) !important;
+    letter-spacing: 2px !important;
+    transform: skewX(-5deg);
+    font-style: italic;
+    animation: none !important; /* Remove old glow */
+}
+
+.logo h2 {
+    color: var(--primary-color) !important;
+    text-shadow: 0 0 20px var(--primary-glow) !important;
+    font-size: 36px !important;
+    letter-spacing: 12px !important;
+    transform: skewX(-5deg);
+    font-style: italic;
+    margin-bottom: 50px !important;
+    animation: pulseOrange 2s infinite !important;
+}
+
+h2 {
+    color: #fff !important;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    font-style: italic;
+    border-bottom: 2px solid var(--border-color);
+    padding-bottom: 15px;
+    margin-bottom: 25px;
+}
+
+/* Buttons (Tactical / AAA style) */
+.btn {
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%) !important;
+    border: none !important;
+    border-radius: 4px !important;
+    color: #fff !important;
+    text-transform: uppercase !important;
+    font-weight: 900 !important;
+    letter-spacing: 2px !important;
+    box-shadow: 0 5px 0 #b32a00, 0 10px 20px rgba(255, 60, 0, 0.4) !important;
+    transform: skewX(-10deg) !important;
+    transition: all 0.15s ease !important;
+    padding: 18px 40px !important;
+    position: relative;
+    overflow: hidden;
+}
+
+.btn-icon, .btn-text {
+    transform: skewX(10deg) !important; /* Unskew text */
+    display: inline-block;
+}
+
+.btn::before {
+    content: '';
+    position: absolute;
+    top: 0; left: -100%;
+    width: 50%; height: 100%;
+    background: linear-gradient(to right, rgba(255,255,255,0) 0%, rgba(255,255,255,0.3) 50%, rgba(255,255,255,0) 100%);
+    transform: skewX(-25deg);
+    animation: shine 3s infinite;
+}
+
+.btn:hover {
+    transform: skewX(-10deg) translateY(-2px) !important;
+    box-shadow: 0 7px 0 #b32a00, 0 15px 25px rgba(255, 60, 0, 0.6) !important;
+    filter: brightness(1.1) !important;
+}
+
+.btn:active {
+    transform: skewX(-10deg) translateY(5px) !important;
+    box-shadow: 0 0 0 #b32a00, 0 5px 10px rgba(255, 60, 0, 0.4) !important;
+}
+
+.btn-secondary {
+    background: linear-gradient(135deg, #2a2d3e 0%, #1a1c29 100%) !important;
+    box-shadow: 0 5px 0 #0d0f17, 0 10px 20px rgba(0,0,0,0.5) !important;
+    color: #a0a8c0 !important;
+}
+
+.btn-secondary:hover {
+    background: linear-gradient(135deg, #35394e 0%, #222536 100%) !important;
+    box-shadow: 0 7px 0 #0d0f17, 0 15px 25px rgba(0,0,0,0.6) !important;
+    color: #fff !important;
+}
+
+.btn-secondary:active {
+    box-shadow: 0 0 0 #0d0f17, 0 5px 10px rgba(0,0,0,0.5) !important;
+}
+
+/* Specific main Play button */
+#playBtn {
+    padding: 24px 60px !important;
+    font-size: 28px !important;
+    box-shadow: 0 6px 0 #b32a00, 0 15px 30px rgba(255, 140, 0, 0.5), 0 0 40px rgba(255, 140, 0, 0.3) !important;
+}
+
+/* Health and HUD */
+.health-container, .weapon-info, .stat-display {
+    background: rgba(10, 12, 18, 0.9) !important;
+    border: 1px solid var(--border-color) !important;
+    border-top: 2px solid var(--primary-color) !important;
+    border-radius: 4px !important;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.8) !important;
+    transform: skewX(-5deg) !important;
+    padding: 15px 20px !important;
+}
+
+.health-label, .health-text, .weapon-name, .ammo-count, .hud-label, .hud-value {
+    transform: skewX(5deg) !important;
+    font-style: italic;
+    letter-spacing: 1px;
+}
+
+.health-bar-bg {
+    background: #000 !important;
+    border: 1px solid #333 !important;
+    border-radius: 2px !important;
+    transform: skewX(5deg) !important;
+}
+
+.health-bar {
+    background: linear-gradient(90deg, #ff8c00, #ffcc00) !important;
+    border-radius: 1px !important;
+    box-shadow: 0 0 10px rgba(255, 140, 0, 0.8) !important;
+}
+
+.health-bar.low {
+    background: linear-gradient(90deg, #ff0000, #ff3c00) !important;
+    box-shadow: 0 0 10px rgba(255, 0, 0, 0.8) !important;
+}
+
+/* Profile / XP Bars */
+.xp-bar-bg {
+    background: rgba(0,0,0,0.6) !important;
+    border: 1px solid var(--border-color) !important;
+    border-radius: 2px !important;
+}
+
+.xp-bar {
+    background: linear-gradient(90deg, var(--accent-color), #00b3ff) !important;
+    box-shadow: 0 0 10px rgba(0, 255, 204, 0.5) !important;
+}
+
+/* Inputs / Room Codes */
+.room-code-input {
+    background: rgba(0,0,0,0.5) !important;
+    border: 2px solid var(--border-color) !important;
+    border-radius: 4px !important;
+    color: var(--accent-color) !important;
+    box-shadow: inset 0 2px 10px rgba(0,0,0,0.8) !important;
+    transition: all 0.3s ease;
+}
+
+.room-code-input:focus {
+    border-color: var(--primary-color) !important;
+    box-shadow: inset 0 2px 10px rgba(0,0,0,0.8), 0 0 15px var(--primary-glow) !important;
+}
+
+.room-code {
+    color: var(--primary-color) !important;
+    text-shadow: 0 0 15px var(--primary-glow) !important;
+}
+
+/* Shop and Level Grids */
+.level-card, .character-card {
+    background: rgba(20,22,31,0.8) !important;
+    border: 1px solid var(--border-color) !important;
+    border-radius: 8px !important;
+    transition: all 0.2s ease !important;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.5) !important;
+}
+
+.level-card:hover, .character-card:hover {
+    transform: translateY(-5px) scale(1.02) !important;
+    border-color: var(--primary-color) !important;
+    box-shadow: 0 10px 25px rgba(255,140,0,0.2) !important;
+}
+
+.level-card.selected, .character-card.equipped {
+    border-color: var(--primary-color) !important;
+    box-shadow: 0 0 20px var(--primary-glow), inset 0 0 15px rgba(255,140,0,0.2) !important;
+    background: rgba(255,140,0,0.1) !important;
+}
+
+/* Animations */
+@keyframes slideInHUD {
+    0% { transform: scale(0.95) translateY(20px); opacity: 0; }
+    100% { transform: scale(1) translateY(0); opacity: 1; }
+}
+
+@keyframes pulseOrange {
+    0% { opacity: 0.8; text-shadow: 0 0 15px var(--primary-glow); }
+    50% { opacity: 1; text-shadow: 0 0 25px var(--primary-color); }
+    100% { opacity: 0.8; text-shadow: 0 0 15px var(--primary-glow); }
+}
+
+@keyframes shine {
+    0% { left: -100%; }
+    20% { left: 200%; }
+    100% { left: 200%; }
+}
+
+/* Result Screen */
+.results-container {
+    background: var(--panel-gradient) !important;
+    border: 2px solid var(--border-color) !important;
+    border-top: 4px solid var(--primary-color) !important;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.9) !important;
+    clip-path: polygon(20px 0, 100% 0, 100% calc(100% - 20px), calc(100% - 20px) 100%, 0 100%, 0 20px);
+}
+
+.result-title.victory {
+    color: var(--primary-color) !important;
+    text-shadow: 0 0 30px var(--primary-glow) !important;
+}
+
+.stat-item {
+    background: rgba(0,0,0,0.4) !important;
+    border: 1px solid rgba(255,255,255,0.05) !important;
+}
+
+.stat-value {
+    color: var(--accent-color) !important;
+}
+
+/* Multiplayer Lobby Grid */
+.lobby-players-grid {
+    gap: 15px !important;
+}
+
+.lobby-player-card {
+    background: rgba(20,22,31,0.9) !important;
+    border: 1px solid var(--border-color) !important;
+    border-radius: 6px !important;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.5) !important;
+}
+
+.lobby-player-card.local-player {
+    border-color: var(--primary-color) !important;
+    box-shadow: 0 0 15px var(--primary-glow) !important;
+}
+
+/* Minimalist geometric shapes for main menu */
+.geometric-circle { border-color: rgba(255,140,0,0.2) !important; }
+.geometric-square { border-color: rgba(0,255,204,0.15) !important; }
+.geometric-triangle { border-bottom-color: rgba(255,60,0,0.15) !important; }

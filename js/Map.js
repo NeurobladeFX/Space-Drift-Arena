@@ -425,12 +425,31 @@ export class Map {
             this.foregroundDecorations.push({ type: 'warning_sign', x: 300, y: this.height - 220, scale: 0.7, rotation: -0.05 });
         }
         if (levelId === 'jungle_ruins') {
-            this.foregroundDecorations.push({ type: 'tree_jungle_01', x: 300, y: this.height - 720, scale: 0.2, rotation: 0 });
-            this.foregroundDecorations.push({ type: 'tree_jungle_01', x: 880, y: this.height - 300, scale: 0.18, rotation: 0.05 });
-            this.foregroundDecorations.push({ type: 'tree_jungle_01', x: 2050, y: this.height - 960, scale: 0.22, rotation: -0.05 });
-            this.foregroundDecorations.push({ type: 'tree_jungle_01', x: 2700, y: this.height - 360, scale: 0.24, rotation: 0 });
-            this.foregroundDecorations.push({ type: 'tree_jungle_01', x: 2500, y: this.height - 1160, scale: 0.15, rotation: 0.08 });
-            this.foregroundDecorations.push({ type: 'tree_jungle_01', x: 1800, y: this.height - 720, scale: 0.19, rotation: -0.02 });
+            // Automatically distribute trees across all platforms to act as dense cover
+            plats.forEach(p => {
+                const px1 = p.x1 !== undefined ? p.x1 : p.x;
+                const px2 = p.x2 !== undefined ? p.x2 : p.x;
+                const py = p.y !== undefined ? p.y : p.y1;
+                
+                // Add 3-5 trees per platform randomly spaced
+                const numTrees = Math.floor(Math.random() * 3) + 3; 
+                for (let i = 0; i < numTrees; i++) {
+                    const tx = px1 + Math.random() * (px2 - px1);
+                    // y-coordinate is flipped in rendering, so we align with platform top
+                    const ty = py;
+                    // Random scale between 0.15 and 0.25
+                    const tscale = 0.15 + Math.random() * 0.1;
+                    const trotation = (Math.random() - 0.5) * 0.1;
+                    
+                    this.foregroundDecorations.push({ 
+                        type: 'tree_jungle_01', 
+                        x: tx, 
+                        y: this.height - ty - 40, // offset upwards so trunk sits exactly on platform
+                        scale: tscale, 
+                        rotation: trotation 
+                    });
+                }
+            });
         }
 
         // Void Area (Center hole) - Applies to all using this layout

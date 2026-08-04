@@ -530,6 +530,23 @@ export class UI {
                 randomContainer.appendChild(gridItem);
             }
         });
+
+        // Pad random container with bots up to 6 for a "full game" feel
+        if (randomContainer) {
+            const botNames = ['Apex', 'Prime', 'Zeta', 'Echo', 'Delta', 'Gamma'];
+            const botAvatars = ['robot', 'alien', 'synth', 'marine', 'pilot', 'cyborg'];
+            const botsNeeded = Math.max(0, 6 - players.length);
+            for (let i = 0; i < botsNeeded; i++) {
+                const gridItem = document.createElement('div');
+                gridItem.className = 'lobby-player-card';
+                gridItem.innerHTML = `
+                    <div class="lobby-player-avatar"><img src="assets/ui/avatar_${botAvatars[i]}.png" style="width:100%;height:100%;border-radius:50%;object-fit:cover;"></div>
+                    <div class="lobby-player-name">${botNames[i]}</div>
+                    <div class="lobby-player-status">READY</div>
+                `;
+                randomContainer.appendChild(gridItem);
+            }
+        }
     }
 
     updateShop(shop) {

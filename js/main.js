@@ -29,6 +29,7 @@ class Game {
         this.multiplayer = new Multiplayer(this); // Pass game instance to multiplayer
         // ensure multiplayer has local player name
         this.multiplayer.localPlayerName = this.shop.getProfile().name || 'Player';
+        this.multiplayer.localAvatar = this.shop.getProfile().avatar || null;
         this.map = new Map(); // Initialize the map
         this.remotePlayers = {};
 
@@ -199,6 +200,7 @@ class Game {
             this.updateProfileDisplay();
             // update local player avatar when in-game
             if (this.player) this.player.avatar = dataUrl;
+            if (this.multiplayer) this.multiplayer.localAvatar = dataUrl;
         };
 
         this.ui.onToggleProfileLock = (locked) => {
@@ -1420,7 +1422,7 @@ class Game {
         // Use Matchmaker to find a match
         if (this.matchmaker) {
             const profile = this.shop.getProfile();
-            this.matchmaker.findMatch({ mode: 'battle_royale', name: profile.name });
+            this.matchmaker.findMatch({ mode: 'battle_royale', name: profile.name, avatar: profile.avatar || null });
             document.getElementById('matchStatus').textContent = 'Searching for opponents...';
         } else {
             console.log('[Main] Matchmaker unavailable. Simulating bot lobby.');

@@ -425,11 +425,12 @@ export class Map {
             this.foregroundDecorations.push({ type: 'warning_sign', x: 300, y: this.height - 220, scale: 0.7, rotation: -0.05 });
         }
         if (levelId === 'jungle_ruins') {
-            this.foregroundDecorations.push({ type: 'tree_jungle_01', x: 400, y: this.height - 400, scale: 2.0, rotation: 0 });
-            this.foregroundDecorations.push({ type: 'tree_jungle_01', x: 1200, y: this.height - 800, scale: 1.5, rotation: 0.1 });
-            this.foregroundDecorations.push({ type: 'tree_jungle_01', x: 2600, y: this.height - 1200, scale: 2.2, rotation: -0.05 });
-            this.foregroundDecorations.push({ type: 'tree_jungle_01', x: 2000, y: this.height - 200, scale: 1.8, rotation: 0 });
-            this.foregroundDecorations.push({ type: 'tree_jungle_01', x: 800, y: this.height - 1600, scale: 2.5, rotation: 0.08 });
+            this.foregroundDecorations.push({ type: 'tree_jungle_01', x: 300, y: this.height - 720, scale: 1.0, rotation: 0 });
+            this.foregroundDecorations.push({ type: 'tree_jungle_01', x: 880, y: this.height - 300, scale: 0.9, rotation: 0.05 });
+            this.foregroundDecorations.push({ type: 'tree_jungle_01', x: 2050, y: this.height - 960, scale: 1.1, rotation: -0.05 });
+            this.foregroundDecorations.push({ type: 'tree_jungle_01', x: 2700, y: this.height - 360, scale: 1.2, rotation: 0 });
+            this.foregroundDecorations.push({ type: 'tree_jungle_01', x: 2500, y: this.height - 1160, scale: 0.85, rotation: 0.08 });
+            this.foregroundDecorations.push({ type: 'tree_jungle_01', x: 1800, y: this.height - 720, scale: 0.95, rotation: -0.02 });
         }
 
         // Void Area (Center hole) - Applies to all using this layout

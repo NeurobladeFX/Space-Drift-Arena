@@ -134,7 +134,17 @@ export class Matchmaker {
 
             case 'HOST_CONFIRMED':
                 console.log('[Matchmaker] Host confirmed. peers=', msg.peers);
-                // host already started game flow elsewhere
+                if (this.multiplayer && this.multiplayer.isRandomMatch) {
+                    console.log('[Matchmaker] Auto-starting random match in 3 seconds...');
+                    const statusEl = document.getElementById('matchStatus');
+                    if (statusEl) statusEl.textContent = 'Match Found! Starting...';
+                    
+                    setTimeout(() => {
+                        const maps = ['jungle_ruins', 'neon_void_minimilitia'];
+                        const randomLevelId = maps[Math.floor(Math.random() * maps.length)];
+                        this.multiplayer.startGame({ duration: 120, levelId: randomLevelId });
+                    }, 3000);
+                }
                 break;
 
             case 'MATCH_TIMEOUT':

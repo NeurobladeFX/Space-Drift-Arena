@@ -57,7 +57,7 @@ export class Multiplayer {
         const roomId = providedRoomId || `room_${Date.now().toString(36)}`;
         console.log('[Multiplayer] Using room ID:', roomId);
         this.roomCode = roomId;
-        this.players = [{ id: this.localId, name: this.localPlayerName || 'Host', isHost: true }];
+        this.players = [{ id: this.localId, name: this.localPlayerName || 'Host', avatar: this.localAvatar || null, isHost: true }];
 
         // Create a promise to wait for HOST_ROOM_ACK
         return new Promise((resolve, reject) => {

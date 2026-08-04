@@ -525,7 +525,7 @@ export class UI {
                 gridItem.innerHTML = `
                     <div class="lobby-player-avatar">${avatarHtml}</div>
                     <div class="lobby-player-name">${player.name}</div>
-                    ${player.isHost ? '<div class="lobby-player-status">👑 HOST</div>' : '<div class="lobby-player-status">READY</div>'}
+                    <div class="lobby-player-status">READY</div>
                 `;
                 randomContainer.appendChild(gridItem);
             }

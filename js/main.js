@@ -630,12 +630,17 @@ class Game {
             console.log(`[Main] Player respawned at (${Math.floor(sp.x)}, ${Math.floor(sp.y)})`);
         };
 
-        // Create bots only in single player mode
+        // Create bots if room is not full (in both single and multiplayer modes)
         this.bots = [];
         this.botAIs = []; // Initialize botAIs array
-        if (this.gameMode === 'single') {
-            console.log('ðŸ¤– Creating bots for single player mode');
-            for (let i = 1; i < 4; i++) {
+        
+        let targetPlayers = this.gameMode === 'multiplayer' ? 6 : 4; // Max players is 6
+        let currentPlayers = this.gameMode === 'single' ? 1 : (this.multiplayer.players ? this.multiplayer.players.length : 1);
+        let botsToSpawn = Math.max(0, targetPlayers - currentPlayers);
+        
+        if (botsToSpawn > 0) {
+            console.log(`ðŸ¤– Creating ${botsToSpawn} bots to fill the room`);
+            for (let i = 1; i <= botsToSpawn; i++) {
                 const botSpawn = this.map.getSpawnPoint();
                 const bot = new Player(botSpawn.x, botSpawn.y, true, this.soundManager);
                 bot.id = `bot_${i}`;

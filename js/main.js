@@ -34,16 +34,15 @@ class Game {
         this.remotePlayers = {};
 
         // Matchmaker (connects to server dynamically based on environment)
-        // Force production server (Render) even when testing locally
-        const isLocal = false; // Disabled local check to force production server
+        const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
         
         const localWsUrl = `ws://${window.location.hostname}:3000`;
         const localHttpUrl = `http://${window.location.hostname}:3000`;
 
         // For production deployment on Render, use wss://space-drift-arena.onrender.com (standard port 443)
-        const matchmakerUrl = 'wss://space-drift-arena.onrender.com';
+        const matchmakerUrl = isLocal ? localWsUrl : 'wss://space-drift-arena.onrender.com';
         // Ensure HTTPS submissions when running on itch.io or any HTTPS host
-        this.serverBase = 'https://space-drift-arena.onrender.com';
+        this.serverBase = isLocal ? localHttpUrl : 'https://space-drift-arena.onrender.com';
         // Diagnostic logging for deployment troubleshooting
         console.log('[Main] Deployment diagnostics:');
         console.log('[Main]  - window.location.hostname:', window.location.hostname);
@@ -1420,6 +1419,7 @@ class Game {
 
     // Placeholder for random match finding
     findRandomMatch() {
+        this.gameMode = 'multiplayer';
         // Show the random match screen and setup local player card
         this.ui.showRandomMatch();
         this.setupLobbyGrid();

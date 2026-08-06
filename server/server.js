@@ -652,7 +652,8 @@ wss.on('connection', (ws) => {
           // If enough players, create a match
           if (queue.length >= MIN_PLAYERS) {
             const group = [];
-            for (let i = 0; i < Math.min(MAX_PLAYERS, queue.length); i++) {
+            const playersToTake = Math.min(MAX_PLAYERS, queue.length);
+            for (let i = 0; i < playersToTake; i++) {
               group.push(queue.shift());
             }
 
